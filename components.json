@@ -1,0 +1,13 @@
+{
+  "componentPath": "src/components/ui",
+  "rsc": true,
+  "typescript": true,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "src/app/globals.css"
+  },
+  "aliases": {
+    "components": "@/components",
+    "lib": "@/lib"
+  }
+}

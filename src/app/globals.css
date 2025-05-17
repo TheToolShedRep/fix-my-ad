@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 1.0s ease-out both;
+}
+
+.ai-title {
+  background-color: #8b5cf6; /* A softer violet (Tailwind's purple-500) */
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 9999px; /* pill shape */
+  margin-left: 6px;
+  font-weight: 500;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Custom background colors */
+.personality-nova {
+  background-color: #6366f1; /* purple-500 */
+}
+
+.personality-onyx {
+  background-color: #f87171; /* red-400 */
+}
+
+.personality-alloy {
+  background-color: #38bdf8; /* sky-400 */
+}
+
+.personality-sage {
+  background-color: #34d399; /* green-400 */
+}
+
+.personality-echo {
+  background-color: #facc15; /* yellow-400 */
+}
+
+.chat-history-button {
+  width: calc(100% - 40px) !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  padding: 0.5rem !important;
+  background: transparent !important;
+  text-align: left !important;
+  margin: -5px;
+}
+
+.chat-history-button .truncate {
+  max-width: 100% !important;
+}
+
+
