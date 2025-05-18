@@ -7,18 +7,14 @@ import OpenAI from "openai";
 // 🗄️ Supabase client factory for database access (server-side)
 import { createSupabaseClient } from "@/utils/supabase/server";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("❌ Missing OPENAI_API_KEY in environment");
-}
-
 // 🔑 Initialize OpenAI instance using your secret API key
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // 🚀 Handles POST requests to this route
 export async function POST(req: NextRequest) {
-  // 📥 Parse the request body — expects userEmail and optional personality
+  // Parse the request body — expects userEmail and optional personality
   const body = await req.json();
   const { userEmail, personality = "Nova" } = body;
 
