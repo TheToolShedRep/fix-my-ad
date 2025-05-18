@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
     });
+    // Log the actual redirect URL Stripe will use
+    console.log("✅ Stripe session URL:", session.url);
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
