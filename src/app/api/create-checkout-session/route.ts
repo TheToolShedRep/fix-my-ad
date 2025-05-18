@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success`,
+      success_url:
+        "https://fix-my-ad-thetoolshedrep-thetoolshedreps-projects.vercel.app/success",
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
     });
     // Log the actual redirect URL Stripe will use
