@@ -1,4 +1,7 @@
 // app/(landing)/page.tsx
+
+export const dynamic = "force-dynamic";
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white px-6 py-20 text-center">
