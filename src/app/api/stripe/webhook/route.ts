@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
+    // inspect what Stripe is sending
+    console.log("🧾 Session object:", JSON.stringify(session, null, 2));
+
     const customerEmail = session.customer_email;
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
