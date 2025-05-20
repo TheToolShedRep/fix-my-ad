@@ -25,7 +25,7 @@ export default function UpgradeButton() {
 
   return (
     <Button onClick={handleCheckout} className="mt-4">
-      Try Pro!
+      Get Pro!
     </Button>
   );
 }
