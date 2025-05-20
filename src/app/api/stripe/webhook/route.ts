@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
     const subscriptionId = session.subscription as string | undefined;
 
     // 📧 Attempt to use email directly from session
-    let customerEmail = session.customer_email;
+    // let customerEmail = session.customer_email;
+    // 📧 Attempt to use email directly from session
+    let customerEmail: string | null = session.customer_email ?? null;
 
     // 🔁 Fallback: if email is missing, fetch customer from Stripe
     if (!customerEmail && customerId) {
