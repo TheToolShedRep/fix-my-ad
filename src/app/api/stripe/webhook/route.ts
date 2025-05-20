@@ -56,9 +56,9 @@ export async function POST(req: NextRequest) {
     // 🧠 Upsert Pro user info
     const { error } = await supabase.from("pro_users").upsert(
       {
-        user_email: customerEmail,
+        user_email: customerEmail ?? null,
         stripe_customer_id: customerId,
-        stripe_subscription_id: subscriptionId,
+        stripe_subscription_id: subscriptionId ?? null,
         pro_since: new Date().toISOString(),
         is_active: true,
       },
