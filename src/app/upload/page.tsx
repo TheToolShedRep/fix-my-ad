@@ -228,6 +228,59 @@ export default function UploadPage() {
     maxFiles: 1,
   });
 
+  const handleInitialAnalyze = async () => {
+    if (!file) return;
+
+    setIsLoading(true);
+
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) {
+      alert("Please log in to analyze your ad.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/critique", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: email,
+          personality: selectedPersonality,
+          fileType: file.type === "video/mp4" ? "video" : "gif",
+        }),
+      });
+
+      const data = await res.json();
+
+      const userMessage: Message = {
+        role: "user",
+        content: "Please analyze this ad.",
+      };
+
+      const aiMessage: Message = {
+        role: "ai",
+        content: data.result,
+      };
+
+      setChat([userMessage, aiMessage]);
+
+      const title = data.result.split("\n")[0].slice(0, 100);
+
+      await supabase.from("chat_history").insert({
+        user_email: email,
+        personality: selectedPersonality,
+        title,
+        messages: [userMessage, aiMessage],
+      });
+    } catch (err) {
+      console.error("Analysis error:", err);
+      alert("Something went wrong while analyzing.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout
       onSelectEntry={(messages) => {
@@ -314,6 +367,17 @@ export default function UploadPage() {
               />
             )}
           </div>
+        )}
+
+        {/* 🧠 Show Analyze Button only when file is uploaded and no chat yet */}
+        {file && chat.length === 0 && (
+          <Button
+            className="mt-4"
+            disabled={isLoading}
+            onClick={handleInitialAnalyze}
+          >
+            {isLoading ? "Analyzing..." : "Continue to Analyze"}
+          </Button>
         )}
 
         {/* AI Response Section */}
