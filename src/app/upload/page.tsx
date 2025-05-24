@@ -16,10 +16,6 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
 
-const [revisedFile, setRevisedFile] = useState<File | null>(null);
-const [revisedPreviewUrl, setRevisedPreviewUrl] = useState<string | null>(null);
-const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
-
 const personalities = {
   Nova: {
     description: "You're a wise and encouraging ad guide.",
@@ -104,6 +100,12 @@ export default function UploadPage() {
     {}
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const [revisedFile, setRevisedFile] = useState<File | null>(null);
+  const [revisedPreviewUrl, setRevisedPreviewUrl] = useState<string | null>(
+    null
+  );
+  const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
 
   // ✅ Scroll to bottom on new message
   useEffect(() => {
