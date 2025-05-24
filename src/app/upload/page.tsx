@@ -480,59 +480,58 @@ export default function UploadPage() {
             </form>
           </>
         )}
-      </div>
-
-      {/* ✅ 👇 Place this block RIGHT HERE */}
-      {isProUser && !revisedResponse && (
-        <div className="mt-6 w-full max-w-md">
-          <label className="block mb-2 text-sm text-gray-300">
-            Upload Revised Ad
-          </label>
-          <input
-            type="file"
-            accept=".mp4,.gif"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setRevisedFile(file);
-              setRevisedPreviewUrl(URL.createObjectURL(file));
-            }}
-            className="text-sm text-gray-200"
-          />
-          {revisedPreviewUrl && (
-            <Button
-              className="mt-2"
-              disabled={isLoading}
-              onClick={async () => {
-                setIsLoading(true);
-                const email = user?.primaryEmailAddress?.emailAddress;
-                if (!email) return alert("Please log in.");
-                try {
-                  const res = await fetch("/api/critique", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      userEmail: email,
-                      personality: selectedPersonality,
-                      fileType:
-                        revisedFile?.type === "video/mp4" ? "video" : "gif",
-                    }),
-                  });
-                  const data = await res.json();
-                  setRevisedResponse(data.result);
-                } catch (err) {
-                  console.error("Re-critique failed:", err);
-                  alert("Something went wrong.");
-                } finally {
-                  setIsLoading(false);
-                }
+        {/* ✅ 👇 Place this block RIGHT HERE */}
+        {isProUser && !revisedResponse && (
+          <div className="mt-6 w-full max-w-md">
+            <label className="block mb-2 text-sm text-gray-300">
+              Upload Revised Ad
+            </label>
+            <input
+              type="file"
+              accept=".mp4,.gif"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setRevisedFile(file);
+                setRevisedPreviewUrl(URL.createObjectURL(file));
               }}
-            >
-              {isLoading ? "Analyzing..." : "Analyze Revised Ad"}
-            </Button>
-          )}
-        </div>
-      )}
+              className="text-sm text-gray-200"
+            />
+            {revisedPreviewUrl && (
+              <Button
+                className="mt-2"
+                disabled={isLoading}
+                onClick={async () => {
+                  setIsLoading(true);
+                  const email = user?.primaryEmailAddress?.emailAddress;
+                  if (!email) return alert("Please log in.");
+                  try {
+                    const res = await fetch("/api/critique", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        userEmail: email,
+                        personality: selectedPersonality,
+                        fileType:
+                          revisedFile?.type === "video/mp4" ? "video" : "gif",
+                      }),
+                    });
+                    const data = await res.json();
+                    setRevisedResponse(data.result);
+                  } catch (err) {
+                    console.error("Re-critique failed:", err);
+                    alert("Something went wrong.");
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+              >
+                {isLoading ? "Analyzing..." : "Analyze Revised Ad"}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
