@@ -14,6 +14,7 @@ import { useUser } from "@clerk/nextjs";
 import { supabase } from "@/utils/supabase";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { checkProAccess } from "@/lib/checkProAccess";
 
 const personalities = {
   Nova: {
@@ -135,11 +136,24 @@ function UploadPageContent({
   const [speaking, setSpeaking] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const { user } = useUser();
+  const [isProUser, setIsProUser] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
+
+  // ✅ Check Supabase on mount to see if the user has Pro access
+  useEffect(() => {
+    const fetchPro = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (email) {
+        const result = await checkProAccess(email);
+        setIsProUser(result);
+      }
+    };
+    fetchPro();
+  }, [user]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -244,7 +258,7 @@ function UploadPageContent({
         <label className="block text-sm font-medium text-gray-300">
           Choose an AI Personality:
         </label>
-        <select
+        {/* <select
           value={selectedPersonality}
           onChange={(e) =>
             setSelectedPersonality(e.target.value as Personality)
@@ -256,7 +270,39 @@ function UploadPageContent({
               {key}
             </option>
           ))}
-        </select>
+        </select> */}
+
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {Object.entries(personalities).map(([key, value]) => {
+            const isLocked = key !== "Nova" && !isProUser;
+
+            return (
+              <button
+                key={key}
+                onClick={() =>
+                  !isLocked && setSelectedPersonality(key as Personality)
+                }
+                disabled={isLocked}
+                className={`text-left p-2 rounded border text-sm transition ${
+                  selectedPersonality === key
+                    ? "border-purple-500 bg-purple-900"
+                    : "border-gray-700 bg-gray-800"
+                } ${
+                  isLocked
+                    ? "opacity-40 cursor-not-allowed"
+                    : "hover:border-purple-400"
+                }`}
+                title={isLocked ? "Upgrade to Pro to use this personality" : ""}
+              >
+                <div className="font-bold flex items-center gap-1">
+                  {key} {isLocked && "🔒"}
+                </div>
+                <p className="text-xs text-gray-400">{value.description}</p>
+              </button>
+            );
+          })}
+        </div>
+
         <p className="text-xs text-gray-400 italic leading-snug">
           {personalities[selectedPersonality].description}
         </p>
