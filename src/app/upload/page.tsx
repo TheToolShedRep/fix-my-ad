@@ -390,7 +390,7 @@ export default function UploadPage() {
         {chat.length > 0 && (
           <>
             <div className="mt-6 w-full max-w-xl space-y-4">
-              {/* Upload Revised Ad – Only for Pro users */}
+              Upload Revised Ad – Only for Pro users
               {isProUser && chat.length > 0 && !revisedResponse && (
                 <div className="mt-6 w-full max-w-md">
                   <label className="block mb-2 text-sm text-gray-300">
@@ -498,6 +498,61 @@ export default function UploadPage() {
                     </div>
                   )}
 
+                  {/* ✅ 👇 Place this block RIGHT HERE */}
+                  {isProUser && !revisedResponse && (
+                    <div className="mt-6 w-full max-w-md">
+                      <label className="block mb-2 text-sm text-gray-300">
+                        Upload Revised Ad
+                      </label>
+                      <input
+                        type="file"
+                        accept=".mp4,.gif"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setRevisedFile(file);
+                          setRevisedPreviewUrl(URL.createObjectURL(file));
+                        }}
+                        className="text-sm text-gray-200"
+                      />
+                      {revisedPreviewUrl && (
+                        <Button
+                          className="mt-2"
+                          disabled={isLoading}
+                          onClick={async () => {
+                            setIsLoading(true);
+                            const email =
+                              user?.primaryEmailAddress?.emailAddress;
+                            if (!email) return alert("Please log in.");
+                            try {
+                              const res = await fetch("/api/critique", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  userEmail: email,
+                                  personality: selectedPersonality,
+                                  fileType:
+                                    revisedFile?.type === "video/mp4"
+                                      ? "video"
+                                      : "gif",
+                                }),
+                              });
+                              const data = await res.json();
+                              setRevisedResponse(data.result);
+                            } catch (err) {
+                              console.error("Re-critique failed:", err);
+                              alert("Something went wrong.");
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          }}
+                        >
+                          {isLoading ? "Analyzing..." : "Analyze Revised Ad"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   {/* ✅ Side-by-side comparison view (only if revisedResponse is set) */}
                   {revisedResponse && (
                     <div className="mt-6 w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -517,7 +572,6 @@ export default function UploadPage() {
                   )}
                 </div>
               )}
-
               {chat.map((msg, index) => {
                 const isUser = msg.role === "user";
                 const feedback = feedbackGiven[msg.content];
