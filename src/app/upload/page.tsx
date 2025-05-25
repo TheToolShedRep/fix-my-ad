@@ -519,7 +519,20 @@ export default function UploadPage() {
                       }),
                     });
                     const data = await res.json();
+                    // setRevisedResponse(data.result);
+                    const revisedMessage: Message = {
+                      role: "user",
+                      content:
+                        "This is a revised version of the ad. Please reanalyze it.",
+                    };
+
+                    const aiMessage: Message = {
+                      role: "ai",
+                      content: data.result,
+                    };
+
                     setRevisedResponse(data.result);
+                    setChat((prev) => [...prev, revisedMessage, aiMessage]);
                   } catch (err) {
                     console.error("Re-critique failed:", err);
                     alert("Something went wrong.");
