@@ -534,7 +534,7 @@ export default function UploadPage() {
           </div>
         )}
 
-        {isProUser && chat.length > 0 && (
+        {/* {isProUser && chat.length > 0 && (
           <div className="mt-6 w-full max-w-md">
             <label className="block mb-2 text-sm text-gray-300">
               Upload A/B Test Ad
@@ -583,7 +583,7 @@ export default function UploadPage() {
               </Button>
             )}
           </div>
-        )}
+        )} */}
       </div>
     </DashboardLayout>
   );
