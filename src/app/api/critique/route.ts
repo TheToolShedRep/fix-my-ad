@@ -1,40 +1,60 @@
 // 📦 Handles POST requests to /api/critique using the Next.js App Router
 import { NextRequest, NextResponse } from "next/server";
 
-// 📡 Imports the OpenAI SDK to send prompts
+// 📡 OpenAI SDK to send prompts
 import OpenAI from "openai";
 
-// 🗄️ Supabase client factory for database access (server-side)
+// 🗄️ Supabase client (server-side) factory
 import { createSupabaseClient } from "@/utils/supabase/server";
 
-// 🔑 Initialize OpenAI instance using your secret API key
+// 🔑 Initialize OpenAI with your secret API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🚀 Handles POST requests to this route
+// 🚀 POST handler for /api/critique
 export async function POST(req: NextRequest) {
-  // Parse the request body — expects userEmail and optional personality
-  const body = await req.json();
-  const { userEmail, personality = "Nova" } = body;
+  try {
+    // ✅ Make sure the OpenAI API key is present
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing OpenAI API key" },
+        { status: 500 }
+      );
+    }
 
-  // 🔌 Create a Supabase client to fetch user preferences
-  const supabase = createSupabaseClient();
+    // 📥 Parse request body
+    const body = await req.json();
+    const { userEmail, personality = "Nova", prompt: directPrompt } = body;
 
-  // 🔍 Query the user's saved survey data from the user_profiles table
-  const { data: profile, error } = await supabase
-    .from("user_profiles")
-    .select("platform, ad_type, tone")
-    .eq("user_email", userEmail)
-    .single();
+    // 🚨 If no userEmail or direct prompt is provided, throw an error
+    if (!userEmail && !directPrompt) {
+      return NextResponse.json(
+        { error: "Missing userEmail or prompt" },
+        { status: 400 }
+      );
+    }
 
-  // ✅ Provide fallback values if the user hasn’t completed the survey
-  const platform = profile?.platform || "social media";
-  const adType = profile?.ad_type || "generic";
-  const tone = profile?.tone || "neutral";
+    let finalPrompt = directPrompt;
 
-  // ✍️ Build the AI prompt using the selected personality and survey preferences
-  const prompt = `
+    // 🔄 If userEmail is provided and no directPrompt, build one using survey preferences
+    if (!directPrompt && userEmail) {
+      const supabase = createSupabaseClient();
+
+      // 🧠 Fetch user preferences from Supabase
+      const { data: profile, error } = await supabase
+        .from("user_profiles")
+        .select("platform, ad_type, tone")
+        .eq("user_email", userEmail)
+        .single();
+
+      // 🛟 Provide fallback values if survey not filled out
+      const platform = profile?.platform || "social media";
+      const adType = profile?.ad_type || "generic";
+      const tone = profile?.tone || "neutral";
+
+      // ✍️ Build a structured AI prompt
+      finalPrompt = `
 You're a ${personality}, an expert in ad critique and optimization.
 
 This is a ${platform} video ad for a ${adType} brand.
@@ -46,22 +66,32 @@ Provide:
 - 3 weaknesses
 - 3 specific improvements
 `;
+    }
 
-  // 🤖 Send the constructed prompt to OpenAI GPT-4o for a response
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "system",
-        content: "You are an expert ad critique assistant.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+    // 🤖 Send the prompt to OpenAI GPT-4o
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert ad critique assistant.",
+        },
+        {
+          role: "user",
+          content: finalPrompt,
+        },
+      ],
+    });
 
-  // 📤 Return the AI’s response to the frontend
-  return NextResponse.json({ result: res.choices[0].message.content });
+    // 🧾 Safely extract the response content
+    const output = res.choices?.[0]?.message?.content;
+    if (!output) throw new Error("No response from OpenAI");
+
+    // 📤 Return the result to the frontend
+    return NextResponse.json({ result: output });
+  } catch (err) {
+    // ❌ Catch and log any server-side error
+    console.error("❌ /api/critique error:", err);
+    return NextResponse.json({ error: "Failed to analyze." }, { status: 500 });
+  }
 }
