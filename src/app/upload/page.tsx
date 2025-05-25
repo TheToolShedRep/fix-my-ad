@@ -481,7 +481,7 @@ export default function UploadPage() {
           </>
         )}
         {/* ✅ 👇 Place this block RIGHT HERE */}
-        {isProUser && !revisedResponse && (
+        {/* {isProUser && !revisedResponse && (
           <div className="mt-6 w-full max-w-md">
             <label className="block mb-2 text-sm text-gray-300">
               Upload Revised Ad
@@ -529,8 +529,8 @@ export default function UploadPage() {
                 {isLoading ? "Analyzing..." : "Analyze Revised Ad"}
               </Button>
             )}
-          </div>
-        )}
+          </div> */}
+        {/* )} */}
       </div>
     </DashboardLayout>
   );
