@@ -486,9 +486,9 @@ export default function UploadPage() {
         )}
         {/* ✅ 👇 Place this block RIGHT HERE */}
         {isProUser && chat.length > 0 && !revisedResponse && (
-          <div className="mt-6 w-full max-w-md mb-5">
+          <div className="mt-6 w-full max-w-md pb-{5}">
             <label className="block mb-2 text-sm text-gray-300">
-              Upload Revised Ad
+              Upload Revised Ad here!
             </label>
             <input
               type="file"
