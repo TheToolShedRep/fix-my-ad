@@ -250,15 +250,15 @@ export default function UploadPage() {
       const res = await fetch("/api/critique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // body: JSON.stringify({
-        //   userEmail: email,
-        //   personality: selectedPersonality,
-        //   fileType: file.type === "video/mp4" ? "video" : "gif",
-        // }),
-
         body: JSON.stringify({
-          prompt: `This is a revised version of the previous ad. Please re-analyze it using the "${selectedPersonality}" personality.`,
+          userEmail: email,
+          personality: selectedPersonality,
+          fileType: file.type === "video/mp4" ? "video" : "gif",
         }),
+
+        // body: JSON.stringify({
+        //   prompt: `Please analyze this ad using the "${selectedPersonality}" personality.`,
+        // }),
       });
 
       const data = await res.json();
@@ -513,15 +513,9 @@ export default function UploadPage() {
                     const res = await fetch("/api/critique", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      // body: JSON.stringify({
-                      //   userEmail: email,
-                      //   personality: selectedPersonality,
-                      //   fileType:
-                      //     revisedFile?.type === "video/mp4" ? "video" : "gif",
-                      // }),
 
                       body: JSON.stringify({
-                        prompt: `This is a revised version of the previous ad. Please re-analyze it using the "${selectedPersonality}" personality.`,
+                        prompt: `Please analyze this ad using the "${selectedPersonality}" personality.`,
                       }),
                     });
                     const data = await res.json();
