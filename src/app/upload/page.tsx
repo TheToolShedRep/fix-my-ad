@@ -380,7 +380,7 @@ export default function UploadPage() {
         )}
 
         {/* 🧠 Show Analyze Button only when file is uploaded and no chat yet */}
-        {file && chat.length === 0 && (
+        {file && chat.length === 0 && !revisedResponse && (
           <Button
             className="mt-4"
             disabled={isLoading}
@@ -486,7 +486,7 @@ export default function UploadPage() {
         )}
         {/* ✅ 👇 Place this block RIGHT HERE */}
         {isProUser && chat.length > 0 && !revisedResponse && (
-          <div className="mt-6 w-full max-w-md pb-{5}">
+          <div className="mt-6 w-full max-w-md pb-5">
             <label className="block mb-2 text-sm text-gray-300">
               Upload Revised Ad here!
             </label>
@@ -513,11 +513,15 @@ export default function UploadPage() {
                     const res = await fetch("/api/critique", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
+                      // body: JSON.stringify({
+                      //   userEmail: email,
+                      //   personality: selectedPersonality,
+                      //   fileType:
+                      //     revisedFile?.type === "video/mp4" ? "video" : "gif",
+                      // }),
+
                       body: JSON.stringify({
-                        userEmail: email,
-                        personality: selectedPersonality,
-                        fileType:
-                          revisedFile?.type === "video/mp4" ? "video" : "gif",
+                        prompt: `This is a revised version of the previous ad. Please re-analyze it using the "${selectedPersonality}" personality.`,
                       }),
                     });
                     const data = await res.json();
