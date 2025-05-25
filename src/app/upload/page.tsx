@@ -277,12 +277,26 @@ export default function UploadPage() {
 
       const title = data.result.split("\n")[0].slice(0, 100);
 
-      await supabase.from("chat_history").insert({
-        user_email: email,
-        personality: selectedPersonality,
-        title,
-        messages: [userMessage, aiMessage],
-      });
+      // await supabase.from("chat_history").insert({
+      //   user_email: email,
+      //   personality: selectedPersonality,
+      //   title,
+      //   messages: [userMessage, aiMessage],
+      // });
+      const { data: inserted, error } = await supabase
+        .from("chat_history")
+        .insert({
+          user_email: email,
+          personality: selectedPersonality,
+          title,
+          messages: [...chat, userMessage, aiMessage], // or revisedMessage + aiMessage
+        })
+        .select("id")
+        .single();
+
+      if (inserted?.id) {
+        localStorage.setItem("selectedChatId", inserted.id); // ✅ Store for session restore
+      }
     } catch (err) {
       console.error("Analysis error:", err);
       alert("Something went wrong while analyzing.");
