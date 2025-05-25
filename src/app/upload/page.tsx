@@ -499,7 +499,7 @@ export default function UploadPage() {
 
                           {isGeneratingAudio && (
                             <span className="text-xs text-gray-400 ml-2 animate-pulse">
-                              Speaking...
+                              Processing...
                             </span>
                           )}
                         </div>
