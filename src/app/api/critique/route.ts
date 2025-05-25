@@ -1,59 +1,48 @@
 // 📦 Handles POST requests to /api/critique using the Next.js App Router
 import { NextRequest, NextResponse } from "next/server";
 
-// 📡 OpenAI SDK to send prompts
+// 📡 Imports the OpenAI SDK to send prompts
 import OpenAI from "openai";
 
-// 🗄️ Supabase client (server-side) factory
+// 🗄️ Supabase client factory for database access (server-side)
 import { createSupabaseClient } from "@/utils/supabase/server";
 
-// 🔑 Initialize OpenAI with your secret API key
+// 🔑 Initialize OpenAI instance using your secret API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🚀 POST handler for /api/critique
+// 🚀 Handles POST requests to this route
 export async function POST(req: NextRequest) {
   try {
-    // ✅ Make sure the OpenAI API key is present
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 500 }
-      );
-    }
-
-    // 📥 Parse request body
+    // 📥 Parse the request body — expects userEmail or prompt
     const body = await req.json();
     const { userEmail, personality = "Nova", prompt: directPrompt } = body;
 
-    // 🚨 If no userEmail or direct prompt is provided, throw an error
+    // 🧱 Validate input
     if (!userEmail && !directPrompt) {
+      console.error("❌ Missing userEmail or prompt in body:", body);
       return NextResponse.json(
-        { error: "Missing userEmail or prompt" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
     let finalPrompt = directPrompt;
 
-    // 🔄 If userEmail is provided and no directPrompt, build one using survey preferences
+    // 🧠 If no directPrompt, build prompt from saved survey data
     if (!directPrompt && userEmail) {
       const supabase = createSupabaseClient();
-
-      // 🧠 Fetch user preferences from Supabase
       const { data: profile, error } = await supabase
         .from("user_profiles")
         .select("platform, ad_type, tone")
         .eq("user_email", userEmail)
         .single();
 
-      // 🛟 Provide fallback values if survey not filled out
       const platform = profile?.platform || "social media";
       const adType = profile?.ad_type || "generic";
       const tone = profile?.tone || "neutral";
 
-      // ✍️ Build a structured AI prompt
       finalPrompt = `
 You're a ${personality}, an expert in ad critique and optimization.
 
@@ -68,7 +57,9 @@ Provide:
 `;
     }
 
-    // 🤖 Send the prompt to OpenAI GPT-4o
+    console.log("🧠 Sending prompt to OpenAI:", finalPrompt);
+
+    // 🤖 Call OpenAI Chat Completion
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -83,15 +74,13 @@ Provide:
       ],
     });
 
-    // 🧾 Safely extract the response content
-    const output = res.choices?.[0]?.message?.content;
-    if (!output) throw new Error("No response from OpenAI");
-
-    // 📤 Return the result to the frontend
-    return NextResponse.json({ result: output });
-  } catch (err) {
-    // ❌ Catch and log any server-side error
-    console.error("❌ /api/critique error:", err);
-    return NextResponse.json({ error: "Failed to analyze." }, { status: 500 });
+    // 📤 Return the AI’s response to the frontend
+    return NextResponse.json({ result: res.choices[0].message.content });
+  } catch (error: any) {
+    console.error("❌ /api/critique error:", error?.message || error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
