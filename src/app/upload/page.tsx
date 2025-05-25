@@ -106,9 +106,6 @@ export default function UploadPage() {
     null
   );
   const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
-  const [abTestFile, setABTestFile] = useState<File | null>(null);
-  const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
-  const [abResponse, setABResponse] = useState<string | null>(null);
 
   // ✅ Scroll to bottom on new message
   useEffect(() => {
@@ -253,6 +250,11 @@ export default function UploadPage() {
       const res = await fetch("/api/critique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // body: JSON.stringify({
+        //   userEmail: email,
+        //   personality: selectedPersonality,
+        //   fileType: file.type === "video/mp4" ? "video" : "gif",
+        // }),
 
         body: JSON.stringify({
           prompt: `This is a revised version of the previous ad. Please re-analyze it using the "${selectedPersonality}" personality.`,
@@ -533,57 +535,6 @@ export default function UploadPage() {
             )}
           </div>
         )}
-
-        {/* {isProUser && chat.length > 0 && (
-          <div className="mt-6 w-full max-w-md">
-            <label className="block mb-2 text-sm text-gray-300">
-              Upload A/B Test Ad
-            </label>
-            <input
-              type="file"
-              accept=".mp4,.gif"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setABTestFile(file);
-                setABPreviewUrl(URL.createObjectURL(file));
-              }}
-              className="text-sm text-gray-200"
-            />
-            {abPreviewUrl && (
-              <Button
-                className="mt-2"
-                disabled={isLoading}
-                onClick={async () => {
-                  setIsLoading(true);
-                  const email = user?.primaryEmailAddress?.emailAddress;
-                  if (!email) return alert("Please log in.");
-                  try {
-                    const res = await fetch("/api/ab-compare", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        userEmail: email,
-                        personality: selectedPersonality,
-                        fileType:
-                          abTestFile?.type === "video/mp4" ? "video" : "gif",
-                      }),
-                    });
-                    const data = await res.json();
-                    setABResponse(data.result);
-                  } catch (err) {
-                    console.error("A/B comparison failed:", err);
-                    alert("Something went wrong.");
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-              >
-                {isLoading ? "Analyzing..." : "Compare to Original"}
-              </Button>
-            )}
-          </div>
-        )} */}
       </div>
     </DashboardLayout>
   );
