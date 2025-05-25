@@ -250,10 +250,14 @@ export default function UploadPage() {
       const res = await fetch("/api/critique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // body: JSON.stringify({
+        //   userEmail: email,
+        //   personality: selectedPersonality,
+        //   fileType: file.type === "video/mp4" ? "video" : "gif",
+        // }),
+
         body: JSON.stringify({
-          userEmail: email,
-          personality: selectedPersonality,
-          fileType: file.type === "video/mp4" ? "video" : "gif",
+          prompt: `This is a revised version of the previous ad. Please re-analyze it using the "${selectedPersonality}" personality.`,
         }),
       });
 
