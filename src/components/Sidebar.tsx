@@ -1,4 +1,3 @@
-// 📁 File: src/components/Sidebar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,23 +8,20 @@ import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { useUser } from "@clerk/nextjs";
 import { supabase } from "@/utils/supabase";
 import { Search, Trash2 } from "lucide-react";
-import { toast } from "sonner"; // ✅ Needed for notifications
+import { toast } from "sonner";
 
-// 🧠 Message structure
 type Message = { role: "user" | "ai"; content: string };
 
-// 🧠 Supabase row structure
 type HistoryItem = {
   id: string;
   title: string;
   created_at: string;
   personality: string;
   messages: Message[];
-  projects?: { name: string }[]; // ✅ Typing for related project data
-  project_name?: string; // ✅ Flattened project name for easier use
+  projects?: { name: string }[];
+  project_name?: string;
 };
 
-// 🧠 Sidebar props
 type SidebarProps = {
   onSelectEntry?: (messages: Message[]) => void;
   onNewChat?: () => void;
@@ -39,21 +35,30 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   const [isProUser, setIsProUser] = useState(false);
   const { user } = useUser();
 
-  // ✅ Fetch Pro access status
-  useEffect(() => {
-    const checkPro = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!email) return;
-      const { data } = await supabase
-        .from("pro_users")
-        .select("is_pro")
-        .eq("user_email", email)
-        .single();
-      setIsProUser(data?.is_pro ?? false);
-    };
-    checkPro();
-  }, [user]);
+  // ✅ Define reusable fetchHistory so it can be used after creating projects
+  const fetchHistory = async () => {
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) return;
 
+    const { data, error } = await supabase
+      .from("chat_history")
+      .select("id, title, created_at, messages, personality, projects(name)")
+      .eq("user_email", email)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading history:", error.message);
+    } else {
+      const formatted: HistoryItem[] =
+        data?.map((item) => ({
+          ...item,
+          project_name: item.projects?.[0]?.name || "Uncategorized",
+        })) ?? [];
+      setHistory(formatted);
+    }
+  };
+
+  // ✅ Fetch Pro access
   useEffect(() => {
     const checkProStatus = async () => {
       const email = user?.primaryEmailAddress?.emailAddress;
@@ -65,6 +70,10 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         .eq("user_email", email)
         .single();
 
+      if (error) {
+        console.error("Error checking pro status:", error.message);
+      }
+
       if (data?.is_pro) {
         setIsProUser(true);
       }
@@ -73,72 +82,12 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkProStatus();
   }, [user]);
 
+  // ✅ Run fetchHistory on load
   useEffect(() => {
-    const initSidebar = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!email) return;
-
-      // ✅ Check if user is Pro
-      const { data: proData, error: proError } = await supabase
-        .from("pro_users")
-        .select("is_pro")
-        .eq("user_email", email)
-        .single();
-
-      if (proError)
-        console.error("Error checking pro status:", proError.message);
-      setIsProUser(proData?.is_pro ?? false);
-
-      // ✅ Load chat history
-      const { data, error } = await supabase
-        .from("chat_history")
-        .select("id, title, created_at, messages, personality, projects(name)")
-        .eq("user_email", email)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error loading history:", error.message);
-      } else {
-        const formatted: HistoryItem[] =
-          data?.map((item) => ({
-            ...item,
-            project_name: item.projects?.[0]?.name || "Uncategorized",
-          })) ?? [];
-        setHistory(formatted);
-      }
-    };
-
-    if (user) initSidebar(); // 👈 Only run once user is available
-  }, [user]);
-
-  // ✅ Fetch history with related projects
-  useEffect(() => {
-    const fetchHistory = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!email) return;
-
-      const { data, error } = await supabase
-        .from("chat_history")
-        .select("id, title, created_at, messages, personality, projects(name)")
-        .eq("user_email", email)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error loading history:", error.message);
-      } else {
-        const formatted: HistoryItem[] =
-          data?.map((item) => ({
-            ...item,
-            project_name: item.projects?.[0]?.name || "Uncategorized",
-          })) ?? [];
-        setHistory(formatted);
-      }
-    };
-
     fetchHistory();
   }, [user]);
 
-  // 🔄 Delete handler
+  // 🔄 Delete chat entry
   const handleDeleteHistory = async (id: string) => {
     const { error } = await supabase.from("chat_history").delete().eq("id", id);
     if (error) {
@@ -148,7 +97,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // ➕ Project creation
+  // ➕ Create project
   const handleCreateProject = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
@@ -166,15 +115,16 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       toast("Project created!", {
         description: "You can now assign uploads to it.",
       });
+
+      // ✅ Re-fetch chat history so new project shows up
+      fetchHistory();
     }
   };
 
-  // 🔍 Filtered search
   const filteredResults = history.filter((item) =>
     (item.title || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // 📁 Group by project > date
   const groupedByProject = filteredResults.reduce((acc, item) => {
     const project = item.project_name || "Uncategorized";
     const date = parseISO(item.created_at);
@@ -193,7 +143,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
 
   return (
     <aside className="w-full sm:w-64 h-screen flex flex-col bg-gray-900 text-white border-r border-gray-700 p-4 space-y-6">
-      {/* 🔍 Search */}
+      {/* 🔍 Search bar */}
       <div className="flex items-center justify-between">
         {showSearch && (
           <Input
@@ -222,7 +172,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </button>
       </div>
 
-      {/* ➕ Project Creator */}
+      {/* ➕ Project input for Pro users */}
       {isProUser && (
         <div className="mt-2">
           <label className="block text-xs text-gray-400 mb-1">
@@ -246,7 +196,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </div>
       )}
 
-      {/* 📜 History Grouped by Project > Date */}
+      {/* 📜 History grouped by project and date */}
       <ScrollArea className="flex-1 overflow-y-auto pr-1">
         {Object.entries(groupedByProject).map(([projectName, dateGroups]) => (
           <div key={projectName} className="mb-6">
