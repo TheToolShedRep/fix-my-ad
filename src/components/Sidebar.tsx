@@ -46,10 +46,10 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       if (!email) return;
       const { data } = await supabase
         .from("pro_users")
-        .select("isPro")
+        .select("is_pro")
         .eq("user_email", email)
         .single();
-      setIsProUser(data?.isPro ?? false);
+      setIsProUser(data?.is_pro ?? false);
     };
     checkPro();
   }, [user]);
@@ -81,13 +81,13 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       // ✅ Check if user is Pro
       const { data: proData, error: proError } = await supabase
         .from("pro_users")
-        .select("isPro")
+        .select("is_pro")
         .eq("user_email", email)
         .single();
 
       if (proError)
         console.error("Error checking pro status:", proError.message);
-      setIsProUser(proData?.isPro ?? false);
+      setIsProUser(proData?.is_pro ?? false);
 
       // ✅ Load chat history
       const { data, error } = await supabase
