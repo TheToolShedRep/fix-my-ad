@@ -73,6 +73,44 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkProStatus();
   }, [user]);
 
+  useEffect(() => {
+    const initSidebar = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      // ✅ Check if user is Pro
+      const { data: proData, error: proError } = await supabase
+        .from("pro_users")
+        .select("isPro")
+        .eq("user_email", email)
+        .single();
+
+      if (proError)
+        console.error("Error checking pro status:", proError.message);
+      setIsProUser(proData?.isPro ?? false);
+
+      // ✅ Load chat history
+      const { data, error } = await supabase
+        .from("chat_history")
+        .select("id, title, created_at, messages, personality, projects(name)")
+        .eq("user_email", email)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading history:", error.message);
+      } else {
+        const formatted: HistoryItem[] =
+          data?.map((item) => ({
+            ...item,
+            project_name: item.projects?.[0]?.name || "Uncategorized",
+          })) ?? [];
+        setHistory(formatted);
+      }
+    };
+
+    if (user) initSidebar(); // 👈 Only run once user is available
+  }, [user]);
+
   // ✅ Fetch history with related projects
   useEffect(() => {
     const fetchHistory = async () => {
