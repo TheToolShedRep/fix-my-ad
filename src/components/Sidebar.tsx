@@ -1,3 +1,4 @@
+// 📁 File: src/components/Sidebar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,8 +11,10 @@ import { supabase } from "@/utils/supabase";
 import { Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+// 🧠 Message structure
 type Message = { role: "user" | "ai"; content: string };
 
+// 🧠 Supabase row structure
 type HistoryItem = {
   id: string;
   title: string;
@@ -22,6 +25,7 @@ type HistoryItem = {
   project_name?: string;
 };
 
+// 🧠 Sidebar props
 type SidebarProps = {
   onSelectEntry?: (messages: Message[]) => void;
   onNewChat?: () => void;
@@ -35,7 +39,29 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   const [isProUser, setIsProUser] = useState(false);
   const { user } = useUser();
 
-  // ✅ Define reusable fetchHistory so it can be used after creating projects
+  // ✅ Check if user is Pro
+  useEffect(() => {
+    const checkProStatus = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      const { data, error } = await supabase
+        .from("pro_users")
+        .select("is_active")
+        .eq("user_email", email)
+        .single();
+
+      if (data?.is_active) {
+        setIsProUser(true);
+      } else {
+        console.error("Error checking pro status:", error?.message);
+      }
+    };
+
+    checkProStatus();
+  }, [user]);
+
+  // ✅ Extracted fetch logic for reuse
   const fetchHistory = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
@@ -58,36 +84,11 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     }
   };
 
-  // ✅ Fetch Pro access
-  useEffect(() => {
-    const checkProStatus = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!email) return;
-
-      const { data, error } = await supabase
-        .from("pro_users")
-        .select("is_pro")
-        .eq("user_email", email)
-        .single();
-
-      if (error) {
-        console.error("Error checking pro status:", error.message);
-      }
-
-      if (data?.is_pro) {
-        setIsProUser(true);
-      }
-    };
-
-    checkProStatus();
-  }, [user]);
-
-  // ✅ Run fetchHistory on load
   useEffect(() => {
     fetchHistory();
   }, [user]);
 
-  // 🔄 Delete chat entry
+  // 🔄 Delete handler
   const handleDeleteHistory = async (id: string) => {
     const { error } = await supabase.from("chat_history").delete().eq("id", id);
     if (error) {
@@ -97,7 +98,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // ➕ Create project
+  // ➕ Project creation
   const handleCreateProject = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
@@ -115,16 +116,17 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       toast("Project created!", {
         description: "You can now assign uploads to it.",
       });
-
-      // ✅ Re-fetch chat history so new project shows up
+      // ✅ Refresh history to show project folder
       fetchHistory();
     }
   };
 
+  // 🔍 Filtered search
   const filteredResults = history.filter((item) =>
     (item.title || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // 📁 Group by project > date
   const groupedByProject = filteredResults.reduce((acc, item) => {
     const project = item.project_name || "Uncategorized";
     const date = parseISO(item.created_at);
@@ -143,7 +145,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
 
   return (
     <aside className="w-full sm:w-64 h-screen flex flex-col bg-gray-900 text-white border-r border-gray-700 p-4 space-y-6">
-      {/* 🔍 Search bar */}
+      {/* 🔍 Search Bar */}
       <div className="flex items-center justify-between">
         {showSearch && (
           <Input
@@ -162,7 +164,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </button>
       </div>
 
-      {/* ➕ Upload */}
+      {/* ➕ Upload Button */}
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => onNewChat?.()}
@@ -172,7 +174,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </button>
       </div>
 
-      {/* ➕ Project input for Pro users */}
+      {/* ➕ Project Creator (Pro users only) */}
       {isProUser && (
         <div className="mt-2">
           <label className="block text-xs text-gray-400 mb-1">
@@ -196,7 +198,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </div>
       )}
 
-      {/* 📜 History grouped by project and date */}
+      {/* 📜 History Grouped by Project > Date */}
       <ScrollArea className="flex-1 overflow-y-auto pr-1">
         {Object.entries(groupedByProject).map(([projectName, dateGroups]) => (
           <div key={projectName} className="mb-6">
