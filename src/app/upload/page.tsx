@@ -111,6 +111,12 @@ export default function UploadPage() {
   const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
   const [abResponse, setABResponse] = useState<string | null>(null);
 
+  // ✅ Project selection for upload
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null
+  );
+
   // ✅ Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -415,13 +421,7 @@ export default function UploadPage() {
               {chat.map((msg, index) => {
                 const isUser = msg.role === "user";
                 const feedback = feedbackGiven[msg.content];
-                // ✅ Project selection for upload
-                // const [projects, setProjects] = useState<
-                //   { id: string; name: string }[]
-                // >([]);
-                // const [selectedProjectId, setSelectedProjectId] = useState<
-                //   string | null
-                // >(null);
+
                 return (
                   <div
                     key={index}
