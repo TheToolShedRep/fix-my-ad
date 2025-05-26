@@ -1,4 +1,3 @@
-// 📁 File: src/components/Sidebar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -25,6 +24,13 @@ type HistoryItem = {
   project_name?: string;
 };
 
+// 🧠 Project row structure
+type ProjectItem = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
 // 🧠 Sidebar props
 type SidebarProps = {
   onSelectEntry?: (messages: Message[]) => void;
@@ -33,6 +39,7 @@ type SidebarProps = {
 
 export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
@@ -61,7 +68,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkProStatus();
   }, [user]);
 
-  // ✅ Extracted fetch logic for reuse
+  // ✅ Fetch all chat history
   const fetchHistory = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
@@ -84,8 +91,27 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     }
   };
 
+  // ✅ Fetch all standalone projects
+  const fetchProjects = async () => {
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) return;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("user_email", email)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching projects:", error.message);
+    } else {
+      setProjects(data || []);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
+    fetchProjects();
   }, [user]);
 
   // 🔄 Delete handler
@@ -116,8 +142,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       toast("Project created!", {
         description: "You can now assign uploads to it.",
       });
-      // ✅ Refresh history to show project folder
-      fetchHistory();
+      fetchProjects(); // ✅ Refresh project list
     }
   };
 
@@ -142,6 +167,13 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
 
     return acc;
   }, {} as Record<string, Record<string, HistoryItem[]>>);
+
+  const allProjectNames = [
+    ...new Set([
+      ...projects.map((p) => p.name),
+      ...Object.keys(groupedByProject),
+    ]),
+  ];
 
   return (
     <aside className="w-full sm:w-64 h-screen flex flex-col bg-gray-900 text-white border-r border-gray-700 p-4 space-y-6">
@@ -200,65 +232,77 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
 
       {/* 📜 History Grouped by Project > Date */}
       <ScrollArea className="flex-1 overflow-y-auto pr-1">
-        {Object.entries(groupedByProject).map(([projectName, dateGroups]) => (
-          <div key={projectName} className="mb-6">
-            <h2 className="text-sm text-purple-400 font-bold mb-2">
-              {projectName}
-            </h2>
-            {Object.entries(dateGroups).map(([date, items]) => (
-              <div key={date} className="mb-3">
-                <h3 className="text-xs text-gray-400 mb-1">{date}</h3>
-                <div className="space-y-1">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between py-2 rounded-md hover:bg-gray-800 group"
-                    >
-                      <button
-                        onClick={() => {
-                          localStorage.setItem("selectedChatId", item.id);
-                          onSelectEntry?.(item.messages);
-                        }}
-                        className="flex-1 text-left"
-                      >
-                        <div className="flex flex-col w-full overflow-hidden">
-                          <span
-                            className="truncate font-medium text-sm"
-                            title={item.title}
+        {allProjectNames.map((projectName) => {
+          const dateGroups = groupedByProject[projectName] || {};
+          return (
+            <div key={projectName} className="mb-6">
+              <h2 className="text-sm text-purple-400 font-bold mb-2">
+                {projectName}
+              </h2>
+              {Object.keys(dateGroups).length === 0 ? (
+                <p className="text-xs text-gray-500 ml-2">No uploads yet</p>
+              ) : (
+                Object.entries(dateGroups).map(([date, items]) => (
+                  <div key={date} className="mb-3">
+                    <h3 className="text-xs text-gray-400 mb-1">{date}</h3>
+                    <div className="space-y-1">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between py-2 rounded-md hover:bg-gray-800 group"
+                        >
+                          <button
+                            onClick={() => {
+                              localStorage.setItem("selectedChatId", item.id);
+                              onSelectEntry?.(item.messages);
+                            }}
+                            className="flex-1 text-left"
                           >
-                            {item.title
-                              ? item.title.split(" ").slice(0, 3).join(" ") +
-                                (item.title.split(" ").length > 3 ? "..." : "")
-                              : "Untitled"}
-                          </span>
-                          <span className="text-xs text-gray-400 truncate mt-0.5">
-                            {format(new Date(item.created_at), "h:mm a")} ·{" "}
-                            <span
-                              className={`ai-title personality-${item.personality.toLowerCase()}`}
-                            >
-                              {item.personality}
-                            </span>
-                          </span>
+                            <div className="flex flex-col w-full overflow-hidden">
+                              <span
+                                className="truncate font-medium text-sm"
+                                title={item.title}
+                              >
+                                {item.title
+                                  ? item.title
+                                      .split(" ")
+                                      .slice(0, 3)
+                                      .join(" ") +
+                                    (item.title.split(" ").length > 3
+                                      ? "..."
+                                      : "")
+                                  : "Untitled"}
+                              </span>
+                              <span className="text-xs text-gray-400 truncate mt-0.5">
+                                {format(new Date(item.created_at), "h:mm a")} ·{" "}
+                                <span
+                                  className={`ai-title personality-${item.personality.toLowerCase()}`}
+                                >
+                                  {item.personality}
+                                </span>
+                              </span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Delete this chat?"))
+                                handleDeleteHistory(item.id);
+                            }}
+                            className="text-gray-500 hover:text-red-500 transition opacity-15 hover:opacity-100 mr-2"
+                            title="Delete chat"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm("Delete this chat?"))
-                            handleDeleteHistory(item.id);
-                        }}
-                        className="text-gray-500 hover:text-red-500 transition opacity-15 hover:opacity-100 mr-2"
-                        title="Delete chat"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })}
       </ScrollArea>
     </aside>
   );
