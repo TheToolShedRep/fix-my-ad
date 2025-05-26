@@ -416,12 +416,12 @@ export default function UploadPage() {
                 const isUser = msg.role === "user";
                 const feedback = feedbackGiven[msg.content];
                 // ✅ Project selection for upload
-                const [projects, setProjects] = useState<
-                  { id: string; name: string }[]
-                >([]);
-                const [selectedProjectId, setSelectedProjectId] = useState<
-                  string | null
-                >(null);
+                // const [projects, setProjects] = useState<
+                //   { id: string; name: string }[]
+                // >([]);
+                // const [selectedProjectId, setSelectedProjectId] = useState<
+                //   string | null
+                // >(null);
                 return (
                   <div
                     key={index}
