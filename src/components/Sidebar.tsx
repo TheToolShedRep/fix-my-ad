@@ -218,7 +218,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
           onClick={() => onNewChat?.()}
           className="text-sm text-blue-400 hover:text-blue-200"
         >
-          + New Upload
+          + New Uploads
         </button>
       </div>
 
