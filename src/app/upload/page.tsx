@@ -107,6 +107,10 @@ export default function UploadPage() {
   );
   const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
 
+  const [abTestFile, setABTestFile] = useState<File | null>(null);
+  const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
+  const [abResponse, setABResponse] = useState<string | null>(null);
+
   // ✅ Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -473,30 +477,7 @@ export default function UploadPage() {
                             <Clipboard size={18} />
                           </button>
 
-                          {/* Spinner shown during TTS playback */}
-                          {/* {isGeneratingAudio && (
-                            <svg
-                              className="animate-spin h-4 w-4 text-gray-400"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8v8z"
-                              ></path>
-                            </svg>
-                          )} */}
-
+                          {/* This let user know the text to talk is processing */}
                           {isGeneratingAudio && (
                             <span className="text-xs text-gray-400 ml-2 animate-pulse">
                               Processing...
@@ -527,13 +508,26 @@ export default function UploadPage() {
                 {isLoading ? "Thinking..." : "Ask"}
               </Button>
             </form>
+
+            {/* A/B testing UI */}
+            {abResponse && (
+              <div className="mt-6 w-full max-w-xl">
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  A/B Test Comparison Result
+                </h2>
+                <div className="bg-gray-800 rounded-lg p-4 text-sm whitespace-pre-line">
+                  {abResponse}
+                </div>
+              </div>
+            )}
           </>
         )}
-        {/* ✅ 👇 Place this block RIGHT HERE */}
+
+        {/* Upload video after improvments  */}
         {isProUser && chat.length > 0 && !revisedResponse && (
           <div className="mt-6 w-full max-w-md pb-5">
             <label className="block mb-2 text-sm text-gray-300">
-              Upload Revised Ad here!
+              Upload Revised Ad
             </label>
             <input
               type="file"
@@ -564,7 +558,6 @@ export default function UploadPage() {
                       }),
                     });
                     const data = await res.json();
-                    // setRevisedResponse(data.result);
                     const revisedMessage: Message = {
                       role: "user",
                       content:
@@ -591,6 +584,76 @@ export default function UploadPage() {
             )}
           </div>
         )}
+
+        {/* This compairs two ads side by side A/B test */}
+        <div className="mt-6 w-full max-w-md pb-5">
+          <label className="block mb-2 text-sm text-gray-300">
+            Upload A/B Test Ad
+          </label>
+          <input
+            type="file"
+            accept=".mp4,.gif"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setABTestFile(file);
+              setABPreviewUrl(URL.createObjectURL(file));
+            }}
+            className="text-sm text-gray-200"
+          />
+          {abPreviewUrl && (
+            <Button
+              className="mt-2"
+              disabled={isLoading}
+              onClick={async () => {
+                setIsLoading(true);
+                const email = user?.primaryEmailAddress?.emailAddress;
+                if (!email) return alert("Please log in.");
+                try {
+                  const res = await fetch("/api/ab-compare", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      userEmail: email,
+                      personality: selectedPersonality,
+                      fileType:
+                        abTestFile?.type === "video/mp4" ? "video" : "gif",
+                    }),
+                  });
+                  const data = await res.json();
+
+                  const abMessage: Message = {
+                    role: "user",
+                    content: "Please compare these two ads.",
+                  };
+
+                  const aiMessage: Message = {
+                    role: "ai",
+                    content: data.result,
+                  };
+
+                  setABResponse(data.result);
+                  setChat((prev) => [...prev, abMessage, aiMessage]);
+
+                  // Save comparison to history
+                  await supabase.from("chat_history").insert({
+                    user_email: email,
+                    personality: selectedPersonality,
+                    title: data.result.split("\n")[0].slice(0, 100),
+                    messages: [...chat, abMessage, aiMessage],
+                  });
+                } catch (err) {
+                  console.error("A/B comparison failed:", err);
+                  alert("Something went wrong.");
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              {isLoading ? "Analyzing..." : "Compare to Original"}
+            </Button>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
