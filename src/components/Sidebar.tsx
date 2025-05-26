@@ -54,6 +54,25 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkPro();
   }, [user]);
 
+  useEffect(() => {
+    const checkProStatus = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      const { data, error } = await supabase
+        .from("pro_users")
+        .select("isPro")
+        .eq("user_email", email)
+        .single();
+
+      if (data?.isPro) {
+        setIsProUser(true);
+      }
+    };
+
+    checkProStatus();
+  }, [user]);
+
   // ✅ Fetch history with related projects
   useEffect(() => {
     const fetchHistory = async () => {
