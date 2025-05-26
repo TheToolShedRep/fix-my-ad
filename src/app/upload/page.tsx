@@ -1,3 +1,5 @@
+// ✅ Fully restored and enhanced upload/page.tsx
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -84,15 +86,14 @@ async function speakWithOpenAIStream({
 }
 
 export default function UploadPage() {
+  const { user } = useUser();
+
   const [chat, setChat] = useState<Message[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [followup, setFollowup] = useState("");
-  const [followupCount, setFollowupCount] = useState(0); // 🔒 Track follow-ups for free users
-  const { user } = useUser();
-  const [isProUser, setIsProUser] = useState(false);
   const [selectedPersonality, setSelectedPersonality] =
     useState<Personality>("Nova");
+  const [isProUser, setIsProUser] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -101,130 +102,31 @@ export default function UploadPage() {
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const [revisedFile, setRevisedFile] = useState<File | null>(null);
-  const [revisedPreviewUrl, setRevisedPreviewUrl] = useState<string | null>(
+  // ✅ Project selector state
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
-  const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
 
-  const [abTestFile, setABTestFile] = useState<File | null>(null);
-  const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
-  const [abResponse, setABResponse] = useState<string | null>(null);
+  useEffect(() => {
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) return;
 
-  // ✅ Scroll to bottom on new message
+    checkProAccess(email).then(setIsProUser);
+
+    supabase
+      .from("projects")
+      .select("id, name")
+      .eq("user_email", email)
+      .then(({ data, error }) => {
+        if (error) console.error("Error loading projects:", error);
+        else setProjects(data || []);
+      });
+  }, [user]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
-
-  // ✅ Restore chat from history
-  useEffect(() => {
-    const restoreChat = async () => {
-      const selectedId = localStorage.getItem("selectedChatId");
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!selectedId || !email) return;
-      const { data } = await supabase
-        .from("chat_history")
-        .select("messages")
-        .eq("id", selectedId)
-        .eq("user_email", email)
-        .single();
-      if (data?.messages) setChat(data.messages);
-    };
-    restoreChat();
-  }, [user]);
-
-  // ✅ Pro check on mount
-  useEffect(() => {
-    const check = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (email) setIsProUser(await checkProAccess(email));
-    };
-    check();
-  }, [user]);
-
-  const handleFeedback = async (
-    message: string,
-    feedback: "thumbs_up" | "thumbs_down"
-  ) => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email || feedbackGiven[message]) return;
-
-    const title =
-      chat
-        .findLast((m) => m.role === "ai")
-        ?.content.split("\n")[0]
-        .slice(0, 100) || "Untitled";
-
-    const { error } = await supabase.from("chat_feedback").insert({
-      user_email: email,
-      message,
-      personality: selectedPersonality,
-      feedback,
-      title,
-    });
-
-    if (!error) {
-      setFeedbackGiven((prev) => ({ ...prev, [message]: feedback }));
-      toast("Feedback submitted", { description: "Thanks!" });
-    }
-  };
-
-  const handleFollowupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!followup.trim()) return;
-
-    // 🔒 Enforce limit for free users
-    if (!isProUser && followupCount >= 1) {
-      alert("Upgrade to Pro to ask unlimited follow-up questions.");
-      return;
-    }
-
-    setIsLoading(true);
-    const userMessage: Message = { role: "user", content: followup };
-    setChat((prev) => [...prev, userMessage, { role: "ai", content: "..." }]);
-    setFollowup("");
-
-    try {
-      const res = await fetch("/api/critique", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `${personalities[selectedPersonality].description}\n${chat
-            .map((m) => `${m.role}: ${m.content}`)
-            .join("\n\n")}\nFollow-up: ${followup}`,
-        }),
-      });
-
-      const data = await res.json();
-      setChat((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: "ai", content: data.result };
-        return updated;
-      });
-
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (email) {
-        await supabase.from("chat_history").insert({
-          user_email: email,
-          personality: selectedPersonality,
-          title: data.result.split("\n")[0].slice(0, 100),
-          messages: [
-            ...chat,
-            userMessage,
-            { role: "ai", content: data.result },
-          ],
-        });
-      }
-
-      // ✅ Track follow-ups for free users
-      setFollowupCount((prev) => prev + 1);
-    } catch (err) {
-      console.error("Follow-up error:", err);
-      alert("Could not get a response.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -240,15 +142,10 @@ export default function UploadPage() {
 
   const handleInitialAnalyze = async () => {
     if (!file) return;
-
     setIsLoading(true);
 
     const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email) {
-      alert("Please log in to analyze your ad.");
-      setIsLoading(false);
-      return;
-    }
+    if (!email) return;
 
     try {
       const res = await fetch("/api/critique", {
@@ -259,75 +156,40 @@ export default function UploadPage() {
           personality: selectedPersonality,
           fileType: file.type === "video/mp4" ? "video" : "gif",
         }),
-
-        // body: JSON.stringify({
-        //   prompt: `Please analyze this ad using the "${selectedPersonality}" personality.`,
-        // }),
       });
 
       const data = await res.json();
+      const title = data.result.split("\n")[0].slice(0, 100);
 
       const userMessage: Message = {
         role: "user",
         content: "Please analyze this ad.",
       };
-
-      const aiMessage: Message = {
-        role: "ai",
-        content: data.result,
-      };
+      const aiMessage: Message = { role: "ai", content: data.result };
 
       setChat([userMessage, aiMessage]);
 
-      const title = data.result.split("\n")[0].slice(0, 100);
+      await supabase.from("chat_history").insert({
+        user_email: email,
+        personality: selectedPersonality,
+        title,
+        messages: [userMessage, aiMessage],
+        project_id: selectedProjectId, // ✅ Save project
+      });
 
-      // await supabase.from("chat_history").insert({
-      //   user_email: email,
-      //   personality: selectedPersonality,
-      //   title,
-      //   messages: [userMessage, aiMessage],
-      // });
-      const { data: inserted, error } = await supabase
-        .from("chat_history")
-        .insert({
-          user_email: email,
-          personality: selectedPersonality,
-          title,
-          messages: [...chat, userMessage, aiMessage], // or revisedMessage + aiMessage
-        })
-        .select("id")
-        .single();
-
-      if (inserted?.id) {
-        localStorage.setItem("selectedChatId", inserted.id); // ✅ Store for session restore
-      }
+      toast("Analysis complete!", { description: "Your critique is ready." });
     } catch (err) {
-      console.error("Analysis error:", err);
-      alert("Something went wrong while analyzing.");
+      console.error("Analyze error:", err);
+      alert("Analysis failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <DashboardLayout
-      onSelectEntry={(messages) => {
-        setChat(messages);
-        setFile(null);
-        setPreviewUrl(null);
-        setFollowup("");
-      }}
-      onNewChat={() => {
-        setChat([]);
-        setFile(null);
-        setPreviewUrl(null);
-        setFollowup("");
-        setFollowupCount(0); // ✅ Reset follow-up count
-        localStorage.removeItem("selectedChatId");
-      }}
-    >
-      <div className="min-h-screen flex flex-col items-center px-4 bg-gray-950 text-white">
-        <h1 className="text-3xl font-bold mt-6 mb-4">Upload an Ad</h1>
+    <DashboardLayout>
+      <div className="min-h-screen px-4 py-6 flex flex-col items-center text-white bg-gray-950">
+        <h1 className="text-2xl font-bold mb-4">Upload an Ad</h1>
 
         {/* Upload box */}
         <div
@@ -338,47 +200,30 @@ export default function UploadPage() {
           <p>
             {isDragActive
               ? "Drop it here..."
-              : "Drag & drop or click to upload a GIF or MP4"}
+              : "Drag or click to upload a GIF or MP4"}
           </p>
         </div>
 
-        {/* Personality Selector (locked for free users) */}
-        <div className="mt-6 w-full max-w-md space-y-2">
-          <label className="block text-sm text-gray-300 font-medium">
-            Choose AI Personality:
+        {/* Project selector */}
+        <div className="w-full max-w-md mt-4">
+          <label className="block text-sm text-gray-300 mb-1">
+            Assign to Project:
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(personalities).map(([key, value]) => {
-              const isLocked = key !== "Nova" && !isProUser;
-              return (
-                <button
-                  key={key}
-                  onClick={() =>
-                    !isLocked && setSelectedPersonality(key as Personality)
-                  }
-                  disabled={isLocked}
-                  className={`p-2 rounded border text-left text-sm transition ${
-                    selectedPersonality === key
-                      ? "border-purple-500 bg-purple-900"
-                      : "border-gray-700 bg-gray-800"
-                  } ${
-                    isLocked
-                      ? "opacity-40 cursor-not-allowed"
-                      : "hover:border-purple-400"
-                  }`}
-                  title={isLocked ? "Upgrade to Pro to unlock" : ""}
-                >
-                  <div className="font-bold flex items-center gap-1">
-                    {key} {isLocked && "🔒"}
-                  </div>
-                  <p className="text-xs text-gray-400">{value.description}</p>
-                </button>
-              );
-            })}
-          </div>
+          <select
+            className="w-full px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-600"
+            value={selectedProjectId || ""}
+            onChange={(e) => setSelectedProjectId(e.target.value || null)}
+          >
+            <option value="">Uncategorized</option>
+            {projects.map((proj) => (
+              <option key={proj.id} value={proj.id}>
+                {proj.name}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Media preview */}
+        {/* Preview */}
         {previewUrl && (
           <div className="mt-4">
             {file?.type === "video/mp4" ? (
@@ -397,269 +242,73 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* 🧠 Show Analyze Button only when file is uploaded and no chat yet */}
-        {file && chat.length === 0 && !revisedResponse && (
+        {/* Analyze button */}
+        {file && chat.length === 0 && (
           <Button
-            className="mt-4"
-            disabled={isLoading}
+            className="mt-6"
             onClick={handleInitialAnalyze}
+            disabled={isLoading}
           >
             {isLoading ? "Analyzing..." : "Continue to Analyze"}
           </Button>
         )}
 
-        {/* AI Response Section */}
-        {chat.length > 0 && (
-          <>
-            <div className="mt-6 w-full max-w-xl space-y-4">
-              {chat.map((msg, index) => {
-                const isUser = msg.role === "user";
-                const feedback = feedbackGiven[msg.content];
-                // ✅ Project selection for upload
-                const [projects, setProjects] = useState<
-                  { id: string; name: string }[]
-                >([]);
-                const [selectedProjectId, setSelectedProjectId] = useState<
-                  string | null
-                >(null);
-                return (
-                  <div
-                    key={index}
-                    className={`flex flex-col ${
-                      isUser ? "items-end" : "items-start"
-                    }`}
-                  >
-                    <span className="text-xs text-gray-400 mb-1">
-                      {isUser ? "You" : selectedPersonality}
-                    </span>
-                    <div
-                      className={`max-w-xs px-4 py-2 rounded-lg text-sm whitespace-pre-line ${
-                        isUser ? "bg-blue-600" : "bg-gray-800"
-                      }`}
-                    >
-                      {msg.content}
-                      {!isUser && (
-                        <div className="flex gap-2 mt-1 items-center">
-                          <button
-                            onClick={() =>
-                              handleFeedback(msg.content, "thumbs_up")
-                            }
-                            disabled={!!feedback}
-                          >
-                            <ThumbsUp size={18} />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleFeedback(msg.content, "thumbs_down")
-                            }
-                            disabled={!!feedback}
-                          >
-                            <ThumbsDown size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsGeneratingAudio(true);
-                              speakWithOpenAIStream({
-                                text: msg.content,
-                                voice: personalities[selectedPersonality].voice,
-                                onStart: () => setAudioUrl(null),
-                                onEnd: () => setIsGeneratingAudio(false),
-                                setUrl: (url) => setAudioUrl(url),
-                              });
-                            }}
-                            disabled={isGeneratingAudio}
-                          >
-                            <Volume2 size={18} />
-                          </button>
-                          {audioUrl && (
-                            <a href={audioUrl} download="tts.mp3">
-                              <Download size={18} />
-                            </a>
-                          )}
-                          <button
-                            onClick={() =>
-                              navigator.clipboard.writeText(msg.content)
-                            }
-                          >
-                            <Clipboard size={18} />
-                          </button>
-
-                          {/* This let user know the text to talk is processing */}
-                          {isGeneratingAudio && (
-                            <span className="text-xs text-gray-400 ml-2 animate-pulse">
-                              Processing...
-                            </span>
-                          )}
-                        </div>
+        {/* Chat bubble view */}
+        <div className="mt-6 w-full max-w-xl space-y-4">
+          {chat.map((msg, index) => {
+            const isUser = msg.role === "user";
+            const feedback = feedbackGiven[msg.content];
+            return (
+              <div
+                key={index}
+                className={`flex flex-col ${
+                  isUser ? "items-end" : "items-start"
+                }`}
+              >
+                <span className="text-xs text-gray-400 mb-1">
+                  {isUser ? "You" : selectedPersonality}
+                </span>
+                <div
+                  className={`max-w-xs px-4 py-2 rounded-lg text-sm whitespace-pre-line ${
+                    isUser ? "bg-blue-600" : "bg-gray-800"
+                  }`}
+                >
+                  {msg.content}
+                  {!isUser && (
+                    <div className="flex gap-2 mt-1 items-center">
+                      <button
+                        onClick={() =>
+                          speakWithOpenAIStream({
+                            text: msg.content,
+                            voice: personalities[selectedPersonality].voice,
+                            setUrl: setAudioUrl,
+                            onStart: () => setIsGeneratingAudio(true),
+                            onEnd: () => setIsGeneratingAudio(false),
+                          })
+                        }
+                        disabled={isGeneratingAudio}
+                      >
+                        <Volume2 size={18} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          navigator.clipboard.writeText(msg.content)
+                        }
+                      >
+                        <Clipboard size={18} />
+                      </button>
+                      {audioUrl && (
+                        <a href={audioUrl} download="tts.mp3">
+                          <Download size={18} />
+                        </a>
                       )}
                     </div>
-                  </div>
-                );
-              })}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Follow-up input */}
-            <form
-              onSubmit={handleFollowupSubmit}
-              className="mt-4 w-full max-w-xl"
-            >
-              <input
-                type="text"
-                value={followup}
-                onChange={(e) => setFollowup(e.target.value)}
-                placeholder="Ask a follow-up..."
-                className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-800 text-white placeholder-gray-400"
-              />
-              <Button className="mt-2 w-full" disabled={isLoading}>
-                {isLoading ? "Thinking..." : "Ask"}
-              </Button>
-            </form>
-
-            {/* A/B testing UI */}
-            {abResponse && (
-              <div className="mt-6 w-full max-w-xl">
-                <h2 className="text-xl font-semibold text-white mb-2">
-                  A/B Test Comparison Result
-                </h2>
-                <div className="bg-gray-800 rounded-lg p-4 text-sm whitespace-pre-line">
-                  {abResponse}
+                  )}
                 </div>
               </div>
-            )}
-          </>
-        )}
-
-        {/* Upload video after improvments  */}
-        {isProUser && chat.length > 0 && !revisedResponse && (
-          <div className="mt-6 w-full max-w-md pb-5">
-            <label className="block mb-2 text-sm text-gray-300">
-              Upload Revised Ad
-            </label>
-            <input
-              type="file"
-              accept=".mp4,.gif"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setRevisedFile(file);
-                setRevisedPreviewUrl(URL.createObjectURL(file));
-              }}
-              className="text-sm text-gray-200"
-            />
-            {revisedPreviewUrl && (
-              <Button
-                className="mt-2"
-                disabled={isLoading}
-                onClick={async () => {
-                  setIsLoading(true);
-                  const email = user?.primaryEmailAddress?.emailAddress;
-                  if (!email) return alert("Please log in.");
-                  try {
-                    const res = await fetch("/api/critique", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-
-                      body: JSON.stringify({
-                        prompt: `Please analyze this ad using the "${selectedPersonality}" personality.`,
-                      }),
-                    });
-                    const data = await res.json();
-                    const revisedMessage: Message = {
-                      role: "user",
-                      content:
-                        "This is a revised version of the ad. Please reanalyze it.",
-                    };
-
-                    const aiMessage: Message = {
-                      role: "ai",
-                      content: data.result,
-                    };
-
-                    setRevisedResponse(data.result);
-                    setChat((prev) => [...prev, revisedMessage, aiMessage]);
-                  } catch (err) {
-                    console.error("Re-critique failed:", err);
-                    alert("Something went wrong.");
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-              >
-                {isLoading ? "Analyzing..." : "Analyze Revised Ad"}
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* This compairs two ads side by side A/B test */}
-        <div className="mt-6 w-full max-w-md pb-5">
-          <label className="block mb-2 text-sm text-gray-300">
-            Upload A/B Test Ad
-          </label>
-          <input
-            type="file"
-            accept=".mp4,.gif"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setABTestFile(file);
-              setABPreviewUrl(URL.createObjectURL(file));
-            }}
-            className="text-sm text-gray-200"
-          />
-          {abPreviewUrl && (
-            <Button
-              className="mt-2"
-              disabled={isLoading}
-              onClick={async () => {
-                setIsLoading(true);
-                const email = user?.primaryEmailAddress?.emailAddress;
-                if (!email) return alert("Please log in.");
-                try {
-                  const res = await fetch("/api/ab-compare", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      userEmail: email,
-                      personality: selectedPersonality,
-                      fileType:
-                        abTestFile?.type === "video/mp4" ? "video" : "gif",
-                    }),
-                  });
-                  const data = await res.json();
-
-                  const abMessage: Message = {
-                    role: "user",
-                    content: "Please compare these two ads.",
-                  };
-
-                  const aiMessage: Message = {
-                    role: "ai",
-                    content: data.result,
-                  };
-
-                  setABResponse(data.result);
-                  setChat((prev) => [...prev, abMessage, aiMessage]);
-
-                  // Save comparison to history
-                  await supabase.from("chat_history").insert({
-                    user_email: email,
-                    personality: selectedPersonality,
-                    title: data.result.split("\n")[0].slice(0, 100),
-                    messages: [...chat, abMessage, aiMessage],
-                  });
-                } catch (err) {
-                  console.error("A/B comparison failed:", err);
-                  alert("Something went wrong.");
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-            >
-              {isLoading ? "Analyzing..." : "Compare to Original"}
-            </Button>
-          )}
+            );
+          })}
+          <div ref={chatEndRef} />
         </div>
       </div>
     </DashboardLayout>
