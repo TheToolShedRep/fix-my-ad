@@ -61,11 +61,11 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
 
       const { data, error } = await supabase
         .from("pro_users")
-        .select("isPro")
+        .select("is_pro")
         .eq("user_email", email)
         .single();
 
-      if (data?.isPro) {
+      if (data?.is_pro) {
         setIsProUser(true);
       }
     };
@@ -218,7 +218,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
           onClick={() => onNewChat?.()}
           className="text-sm text-blue-400 hover:text-blue-200"
         >
-          + New Uploads
+          + New Upload
         </button>
       </div>
 
