@@ -51,6 +51,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
 
   const { user } = useUser();
 
+  // ✅ Check Pro status
   useEffect(() => {
     const checkProStatus = async () => {
       const email = user?.primaryEmailAddress?.emailAddress;
@@ -65,59 +66,52 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkProStatus();
   }, [user]);
 
-  // ✅ Replaces old fetchHistory — handles missing project_name and refresh issues
-  const fetchHistory = async () => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email) return;
-
-    const { data, error } = await supabase
-      .from("chat_history")
-      .select(
-        `
-      id, title, created_at, messages, personality, project_id,
-      projects(name)
-    `
-      )
-      .eq("user_email", email)
-      .order("created_at", { ascending: false });
-
-    const formatted =
-      data?.map((item) => {
-        const fallbackName =
-          projects.find((p) => p.id === item.project_id)?.name ||
-          "Uncategorized";
-
-        return {
-          ...item,
-          project_name: item.projects?.[0]?.name || fallbackName,
-        };
-      }) ?? [];
-
-    if (!error) setHistory(formatted);
-    else console.error("Error loading history:", error.message);
-  };
-
-  const fetchProjects = async () => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email) return;
-    const { data } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("user_email", email)
-      .order("created_at", { ascending: false });
-
-    if (data) {
-      setProjects(data);
-      const initState: Record<string, boolean> = {};
-      data.forEach((p) => (initState[p.name] = true));
-      initState["Uncategorized"] = true;
-      setExpandedFolders(initState);
-    }
-  };
-
+  // ✅ Load projects first, then chats
   useEffect(() => {
-    fetchHistory();
-    fetchProjects();
+    const loadData = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      const { data: projectData } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_email", email)
+        .order("created_at", { ascending: false });
+
+      if (projectData) {
+        setProjects(projectData);
+        const initState: Record<string, boolean> = {};
+        projectData.forEach((p) => (initState[p.name] = true));
+        initState["Uncategorized"] = true;
+        setExpandedFolders(initState);
+
+        // Now fetch chat history with access to project list
+        const { data: historyData, error } = await supabase
+          .from("chat_history")
+          .select(
+            `
+            id, title, created_at, messages, personality, project_id,
+            projects(name)
+          `
+          )
+          .eq("user_email", email)
+          .order("created_at", { ascending: false });
+
+        const formatted =
+          historyData?.map((item) => {
+            const fallback =
+              item.projects?.[0]?.name ||
+              projectData.find((p) => p.id === item.project_id)?.name ||
+              "Uncategorized";
+            return { ...item, project_name: fallback };
+          }) ?? [];
+
+        if (!error) setHistory(formatted);
+        else console.error("History fetch failed:", error.message);
+      }
+    };
+
+    if (user) loadData();
   }, [user]);
 
   const handleDeleteHistory = async (id: string) => {
@@ -128,17 +122,22 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   const handleDeleteProject = async (projectId: string) => {
     if (!confirm("Delete this folder? Chats will be moved to Uncategorized."))
       return;
-
-    // Move chats to uncategorized
     await supabase
       .from("chat_history")
       .update({ project_id: null })
       .eq("project_id", projectId);
-
     await supabase.from("projects").delete().eq("id", projectId);
     toast("Project deleted.");
-    fetchHistory();
-    fetchProjects();
+    // Refresh manually
+    const userEmail = user?.primaryEmailAddress?.emailAddress;
+    if (userEmail) {
+      const { data: refreshedProjects } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_email", userEmail);
+      setProjects(refreshedProjects ?? []);
+      // fetchHistory logic is already handled in useEffect
+    }
   };
 
   const handleAssignToProject = async (
@@ -185,7 +184,6 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       setNewProjectName("");
       setSelectedProjectId(data.id);
       toast("Project created!");
-      fetchProjects();
       onNewChat?.(data.id);
     }
   };
@@ -237,7 +235,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         + New Upload
       </button>
 
-      {/* ➕ Project Input */}
+      {/* ➕ Project Creator */}
       {isProUser && (
         <div>
           <label className="block text-xs text-gray-400 mb-1">
@@ -261,7 +259,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </div>
       )}
 
-      {/* 📂 Project Folders + History */}
+      {/* 📁 Project folders + chat history */}
       <ScrollArea className="flex-1 overflow-y-auto pr-1">
         {[...projects.map((p) => p.name), "Uncategorized"].map(
           (projectName) => {
