@@ -15,6 +15,7 @@ import { supabase } from "@/utils/supabase";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
+// import { validateVideoDuration } from "@/utils/validateDuration";
 
 const personalities = {
   Nova: {
@@ -34,6 +35,22 @@ type Personality = keyof typeof personalities;
 type Message = { role: "user" | "ai"; content: string };
 
 let currentAudio: HTMLAudioElement | null = null;
+
+// ✅ Checks video duration before accepting upload
+const validateVideoDuration = async (
+  file: File,
+  maxSeconds: number
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration <= maxSeconds);
+    };
+    video.src = URL.createObjectURL(file);
+  });
+};
 
 async function speakWithOpenAIStream({
   text,
@@ -56,6 +73,21 @@ async function speakWithOpenAIStream({
       currentAudio = null;
     }
     onStart?.();
+
+    const validateVideoDuration = async (
+      file: File,
+      maxSeconds: number
+    ): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          resolve(video.duration <= maxSeconds);
+        };
+        video.src = URL.createObjectURL(file);
+      });
+    };
 
     const res = await fetch("/api/tts", {
       method: "POST",
@@ -233,12 +265,24 @@ export default function UploadPage() {
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles) => {
+    onDrop: async (acceptedFiles) => {
       const uploadedFile = acceptedFiles[0];
       if (!uploadedFile) return;
+
+      const maxDuration = isProUser ? 60 : 30;
+
+      const isValid = await validateVideoDuration(uploadedFile, maxDuration);
+      if (!isValid) {
+        toast("Video too long!", {
+          description: `Maximum allowed is ${maxDuration} seconds.`,
+        });
+        return;
+      }
+
       setFile(uploadedFile);
       setPreviewUrl(URL.createObjectURL(uploadedFile));
     },
+
     accept: { "video/mp4": [".mp4"], "image/gif": [".gif"] },
     multiple: false,
     maxFiles: 1,
