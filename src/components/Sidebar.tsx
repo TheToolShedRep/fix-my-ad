@@ -10,10 +10,8 @@ import { supabase } from "@/utils/supabase";
 import { Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-// 🧠 Chat message structure
 type Message = { role: "user" | "ai"; content: string };
 
-// 🧠 Supabase chat history structure
 type HistoryItem = {
   id: string;
   title: string;
@@ -25,7 +23,6 @@ type HistoryItem = {
   projects?: { name: string }[];
 };
 
-// 🧠 Supabase project structure
 type ProjectItem = {
   id: string;
   name: string;
@@ -47,11 +44,10 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
-  ); // For assigning new uploads
+  );
 
   const { user } = useUser();
 
-  // ✅ Check Pro user status
   useEffect(() => {
     const checkProStatus = async () => {
       const email = user?.primaryEmailAddress?.emailAddress;
@@ -68,7 +64,6 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkProStatus();
   }, [user]);
 
-  // ✅ Fetch chat history
   const fetchHistory = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
@@ -95,7 +90,6 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     setHistory(formatted);
   };
 
-  // ✅ Fetch user projects
   const fetchProjects = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
@@ -114,13 +108,11 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     fetchProjects();
   }, [user]);
 
-  // 🗑️ Delete chat
   const handleDeleteHistory = async (id: string) => {
     await supabase.from("chat_history").delete().eq("id", id);
     setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // ➕ Create a project
   const handleCreateProject = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email || !newProjectName.trim()) return;
@@ -135,23 +127,47 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     fetchProjects();
   };
 
-  // 📁 Reassign a chat to a project
   const handleAssignToProject = async (
     chatId: string,
     projectId: string | null
   ) => {
-    const { error } = await supabase
+    console.log("Assigning chat:", chatId, "to project:", projectId);
+
+    const { data, error } = await supabase
       .from("chat_history")
       .update({ project_id: projectId })
-      .eq("id", chatId);
+      .eq("id", chatId)
+      .select();
 
-    if (!error) {
-      await fetchHistory();
-      toast("Moved to project.");
+    if (error) {
+      console.error("❌ Failed to assign project:", error.message);
+      toast("Failed to move chat.", { description: error.message });
+      return;
     }
+
+    if (data?.length === 0) {
+      console.warn("⚠️ No rows updated. Check ID match.");
+      toast("No update applied.");
+      return;
+    }
+
+    setHistory((prev) =>
+      prev.map((item) =>
+        item.id === chatId
+          ? {
+              ...item,
+              project_id: projectId,
+              project_name:
+                projects.find((p) => p.id === projectId)?.name ||
+                "Uncategorized",
+            }
+          : item
+      )
+    );
+
+    toast("Moved to project!");
   };
 
-  // 🔍 Filter & Group History by Project and Date
   const filteredResults = history.filter((item) =>
     (item.title || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -192,7 +208,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </button>
       </div>
 
-      {/* ➕ New Upload Button */}
+      {/* ➕ New Upload */}
       <button
         onClick={() => onNewChat?.(selectedProjectId)}
         className="text-sm text-blue-400 hover:text-blue-200"
@@ -200,7 +216,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         + New Upload
       </button>
 
-      {/* ➕ Project Creation Input */}
+      {/* ➕ Project Creator */}
       {isProUser && (
         <div className="mt-2">
           <label className="block text-xs text-gray-400 mb-1">
@@ -236,7 +252,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
                 key={projectName}
                 className="mb-6"
                 onClick={() => {
-                  setSelectedProjectId(project?.id ?? null); // 🟢 Assign future uploads to this project
+                  setSelectedProjectId(project?.id ?? null);
                   if (draggedId) {
                     handleAssignToProject(draggedId, project?.id ?? null);
                     setDraggedId(null);
@@ -244,8 +260,6 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
                 }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
-                  console.log("Dropped on:", project?.id);
-                  console.log("Dragged chat ID:", draggedId);
                   if (draggedId) {
                     handleAssignToProject(draggedId, project?.id ?? null);
                     setDraggedId(null);
