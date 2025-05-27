@@ -65,22 +65,33 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     checkProStatus();
   }, [user]);
 
+  // ✅ Replaces old fetchHistory — handles missing project_name and refresh issues
   const fetchHistory = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
+
     const { data, error } = await supabase
       .from("chat_history")
       .select(
-        "id, title, created_at, messages, personality, project_id, projects(name)"
+        `
+      id, title, created_at, messages, personality, project_id,
+      projects(name)
+    `
       )
       .eq("user_email", email)
       .order("created_at", { ascending: false });
 
     const formatted =
-      data?.map((item) => ({
-        ...item,
-        project_name: item.projects?.[0]?.name || "Uncategorized",
-      })) ?? [];
+      data?.map((item) => {
+        const fallbackName =
+          projects.find((p) => p.id === item.project_id)?.name ||
+          "Uncategorized";
+
+        return {
+          ...item,
+          project_name: item.projects?.[0]?.name || fallbackName,
+        };
+      }) ?? [];
 
     if (!error) setHistory(formatted);
     else console.error("Error loading history:", error.message);
@@ -183,7 +194,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   );
 
   const groupedByProject = filteredResults.reduce((acc, item) => {
-    const project = item.project_name || "Uncategorized";
+    const project = item.project_name?.trim() || "Uncategorized";
     const date = parseISO(item.created_at);
     const dateKey = isToday(date)
       ? "Today"
