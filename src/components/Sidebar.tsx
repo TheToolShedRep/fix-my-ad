@@ -89,6 +89,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       const formatted: HistoryItem[] =
         data?.map((item) => ({
           ...item,
+          // ✅ Access first project name safely from array
           project_name: item.projects?.[0]?.name || "Uncategorized",
         })) ?? [];
       setHistory(formatted);
