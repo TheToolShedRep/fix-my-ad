@@ -10,24 +10,29 @@ import { supabase } from "@/utils/supabase";
 import { Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+// 🧠 Message structure
 type Message = { role: "user" | "ai"; content: string };
 
+// 🧠 Supabase row structure
 type HistoryItem = {
   id: string;
   title: string;
   created_at: string;
   personality: string;
   messages: Message[];
+  projects?: { name: string }[];
   project_id?: string | null;
   project_name?: string;
 };
 
+// 🧠 Project row structure
 type ProjectItem = {
   id: string;
   name: string;
   created_at: string;
 };
 
+// 🧠 Sidebar props
 type SidebarProps = {
   onSelectEntry?: (messages: Message[]) => void;
   onNewChat?: () => void;
@@ -41,7 +46,12 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
   const [newProjectName, setNewProjectName] = useState("");
   const [isProUser, setIsProUser] = useState(false);
   const { user } = useUser();
-  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null
+  );
+  const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(
+    null
+  );
 
   // ✅ Check if user is Pro
   useEffect(() => {
@@ -49,56 +59,61 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!email) return;
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("pro_users")
         .select("is_active")
         .eq("user_email", email)
         .single();
 
-      if (data?.is_active) setIsProUser(true);
+      if (data?.is_active) {
+        setIsProUser(true);
+      } else {
+        console.error("Error checking pro status:", error?.message);
+      }
     };
+
     checkProStatus();
   }, [user]);
 
-  // ✅ Fetch chat history
+  // ✅ Fetch all chat history
   const fetchHistory = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
 
     const { data, error } = await supabase
       .from("chat_history")
-      .select(
-        "id, title, created_at, messages, personality, project_id, projects(name)"
-      )
+      .select("id, title, created_at, messages, personality, projects(name)")
       .eq("user_email", email)
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error loading history:", error.message);
-      return;
+    } else {
+      const formatted: HistoryItem[] =
+        data?.map((item) => ({
+          ...item,
+          project_name: item.projects?.[0]?.name || "Uncategorized",
+        })) ?? [];
+      setHistory(formatted);
     }
-
-    const formatted =
-      data?.map((item) => ({
-        ...item,
-        project_name: item.projects?.[0]?.name || "Uncategorized",
-      })) ?? [];
-
-    setHistory(formatted);
   };
 
-  // ✅ Fetch all projects
+  // ✅ Fetch all standalone projects
   const fetchProjects = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("projects")
       .select("*")
       .eq("user_email", email)
       .order("created_at", { ascending: false });
 
-    setProjects(data || []);
+    if (error) {
+      console.error("Error fetching projects:", error.message);
+    } else {
+      setProjects(data || []);
+    }
   };
 
   useEffect(() => {
@@ -106,45 +121,44 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     fetchProjects();
   }, [user]);
 
-  // 🗑️ Delete
+  // 🔄 Delete handler
   const handleDeleteHistory = async (id: string) => {
-    await supabase.from("chat_history").delete().eq("id", id);
+    const { error } = await supabase.from("chat_history").delete().eq("id", id);
+    if (error) {
+      console.error("Failed to delete history:", error);
+      return;
+    }
     setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // ➕ Add project
+  // ➕ Project creation
   const handleCreateProject = async () => {
     const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email || !newProjectName.trim()) return;
+    if (!email) return;
 
-    await supabase.from("projects").insert({
+    const { error } = await supabase.from("projects").insert({
       user_email: email,
       name: newProjectName.trim(),
     });
 
-    setNewProjectName("");
-    toast("Project created!");
-    fetchProjects();
-  };
-
-  // 📁 Reassign chat to a project
-  const handleAssignToProject = async (chatId: string, projectId: string) => {
-    const { error } = await supabase
-      .from("chat_history")
-      .update({ project_id: projectId })
-      .eq("id", chatId);
-
-    if (!error) {
-      await fetchHistory();
-      toast("Moved to project.");
+    if (error) {
+      console.error("Error creating project:", error.message);
+      alert("Could not create project.");
+    } else {
+      setNewProjectName("");
+      toast("Project created!", {
+        description: "You can now assign uploads to it.",
+      });
+      fetchProjects(); // ✅ Refresh project list
     }
   };
 
-  // 🧠 Search + group logic
+  // 🔍 Filtered search
   const filteredResults = history.filter((item) =>
     (item.title || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // 📁 Group by project > date
   const groupedByProject = filteredResults.reduce((acc, item) => {
     const project = item.project_name || "Uncategorized";
     const date = parseISO(item.created_at);
@@ -161,41 +175,51 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
     return acc;
   }, {} as Record<string, Record<string, HistoryItem[]>>);
 
+  const allProjectNames = [
+    ...new Set([
+      ...projects.map((p) => p.name),
+      ...Object.keys(groupedByProject),
+    ]),
+  ];
+
   return (
     <aside className="w-full sm:w-64 h-screen flex flex-col bg-gray-900 text-white border-r border-gray-700 p-4 space-y-6">
-      {/* 🔍 Search */}
+      {/* 🔍 Search Bar */}
       <div className="flex items-center justify-between">
         {showSearch && (
           <Input
+            type="text"
+            placeholder="Search history..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
             className="text-sm bg-gray-800 border-gray-600 flex-1"
           />
         )}
         <button
-          onClick={() => setShowSearch((prev) => !prev)}
           className="ml-2 text-gray-400 hover:text-white"
+          onClick={() => setShowSearch((prev) => !prev)}
         >
           <Search size={18} />
         </button>
       </div>
 
-      {/* ➕ New Upload */}
-      <button
-        onClick={onNewChat}
-        className="text-sm text-blue-400 hover:text-blue-200"
-      >
-        + New Upload
-      </button>
+      {/* ➕ Upload Button */}
+      <div className="flex items-center justify-between mb-2">
+        <button
+          onClick={() => onNewChat?.()}
+          className="text-sm text-blue-400 hover:text-blue-200"
+        >
+          + New Upload
+        </button>
+      </div>
 
-      {/* ➕ Project Input */}
+      {/* ➕ Project Creator (Pro users only) */}
       {isProUser && (
         <div className="mt-2">
           <label className="block text-xs text-gray-400 mb-1">
             New Project
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Input
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
@@ -205,7 +229,7 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
             <Button
               onClick={handleCreateProject}
               disabled={!newProjectName.trim()}
-              className="text-sm"
+              className="text-sm px-3 py-1"
             >
               Add
             </Button>
@@ -213,82 +237,76 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
         </div>
       )}
 
-      {/* 📁 Project folders and history */}
+      {/* 📜 History Grouped by Project > Date */}
       <ScrollArea className="flex-1 overflow-y-auto pr-1">
-        {projects.map((project) => {
-          const dateGroups = groupedByProject[project.name] || {};
-
+        {allProjectNames.map((projectName) => {
+          const dateGroups = groupedByProject[projectName] || {};
           return (
-            <div
-              key={project.id}
-              className="mb-6"
-              onClick={() => {
-                if (draggedId) {
-                  handleAssignToProject(draggedId, project.id);
-                  setDraggedId(null);
-                }
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-              }}
-              onDrop={() => {
-                if (draggedId) {
-                  handleAssignToProject(draggedId, project.id);
-                  setDraggedId(null);
-                }
-              }}
-            >
+            <div key={projectName} className="mb-6">
               <h2 className="text-sm text-purple-400 font-bold mb-2">
-                {project.name}
+                {projectName}
               </h2>
-
-              {Object.entries(dateGroups).map(([date, items]) => (
-                <div key={date} className="mb-3">
-                  <h3 className="text-xs text-gray-400 mb-1">{date}</h3>
-                  <div className="space-y-1">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between py-2 rounded-md hover:bg-gray-800 group"
-                        draggable
-                        onDragStart={() => setDraggedId(item.id)}
-                      >
-                        <button
-                          onClick={() => {
-                            localStorage.setItem("selectedChatId", item.id);
-                            onSelectEntry?.(item.messages);
-                          }}
-                          className="flex-1 text-left"
+              {Object.keys(dateGroups).length === 0 ? (
+                <p className="text-xs text-gray-500 ml-2">No uploads yet</p>
+              ) : (
+                Object.entries(dateGroups).map(([date, items]) => (
+                  <div key={date} className="mb-3">
+                    <h3 className="text-xs text-gray-400 mb-1">{date}</h3>
+                    <div className="space-y-1">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between py-2 rounded-md hover:bg-gray-800 group"
                         >
-                          <div className="flex flex-col">
-                            <span className="truncate font-medium text-sm">
-                              {item.title?.split(" ").slice(0, 3).join(" ") +
-                                (item.title?.split(" ").length > 3
-                                  ? "..."
-                                  : "")}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {format(new Date(item.created_at), "h:mm a")} ·{" "}
-                              {item.personality}
-                            </span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm("Delete this chat?"))
-                              handleDeleteHistory(item.id);
-                          }}
-                          className="text-gray-500 hover:text-red-500 opacity-50 hover:opacity-100"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+                          <button
+                            onClick={() => {
+                              localStorage.setItem("selectedChatId", item.id);
+                              onSelectEntry?.(item.messages);
+                            }}
+                            className="flex-1 text-left"
+                          >
+                            <div className="flex flex-col w-full overflow-hidden">
+                              <span
+                                className="truncate font-medium text-sm"
+                                title={item.title}
+                              >
+                                {item.title
+                                  ? item.title
+                                      .split(" ")
+                                      .slice(0, 3)
+                                      .join(" ") +
+                                    (item.title.split(" ").length > 3
+                                      ? "..."
+                                      : "")
+                                  : "Untitled"}
+                              </span>
+                              <span className="text-xs text-gray-400 truncate mt-0.5">
+                                {format(new Date(item.created_at), "h:mm a")} ·{" "}
+                                <span
+                                  className={`ai-title personality-${item.personality.toLowerCase()}`}
+                                >
+                                  {item.personality}
+                                </span>
+                              </span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Delete this chat?"))
+                                handleDeleteHistory(item.id);
+                            }}
+                            className="text-gray-500 hover:text-red-500 transition opacity-15 hover:opacity-100 mr-2"
+                            title="Delete chat"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           );
         })}
