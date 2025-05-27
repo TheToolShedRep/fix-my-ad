@@ -244,6 +244,8 @@ export default function Sidebar({ onSelectEntry, onNewChat }: SidebarProps) {
                 }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
+                  console.log("Dropped on:", project?.id);
+                  console.log("Dragged chat ID:", draggedId);
                   if (draggedId) {
                     handleAssignToProject(draggedId, project?.id ?? null);
                     setDraggedId(null);
