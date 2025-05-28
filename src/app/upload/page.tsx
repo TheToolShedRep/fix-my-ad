@@ -38,6 +38,8 @@ let currentAudio: HTMLAudioElement | null = null;
 
 export default function UploadPage() {
   const { user, isLoaded } = useUser();
+  // 🧠 Prevents rendering the page too early
+  if (!isLoaded) return null;
   const [chat, setChat] = useState<Message[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -118,6 +120,7 @@ export default function UploadPage() {
   }, [user]);
 
   useEffect(() => {
+    console.log("✅ isLoaded:", isLoaded, "👤 user:", user);
     const checkSurveyStatus = async () => {
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!email) return;
@@ -541,7 +544,7 @@ export default function UploadPage() {
         )}
 
         {/* Survey Modal (shown once for new users) */}
-        {showSurvey && <SurveyModal />}
+        <SurveyModal />
       </div>
     </DashboardLayout>
   );
