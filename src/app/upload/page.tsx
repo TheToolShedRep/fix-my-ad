@@ -121,6 +121,7 @@ export default function UploadPage() {
 
   useEffect(() => {
     console.log("✅ isLoaded:", isLoaded, "👤 user:", user);
+
     const checkSurveyStatus = async () => {
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!email) return;
@@ -138,6 +139,8 @@ export default function UploadPage() {
       if (!data) {
         setShowSurvey(true); // ✅ Show only if survey not taken
       }
+      console.log("🔍 showSurvey:", showSurvey);
+      console.log("📬 survey data check:", { data, error });
     };
 
     if (isLoaded && user) {
