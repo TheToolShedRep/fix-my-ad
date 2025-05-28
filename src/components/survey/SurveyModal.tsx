@@ -1,3 +1,5 @@
+// SurveyModel.tsx
+
 import { useState } from "react";
 import {
   Dialog,
@@ -14,7 +16,13 @@ import { Button } from "@/components/ui/button";
 import { upsertSurveyResponse } from "@/utils/survey";
 import { useUser } from "@clerk/nextjs";
 
-export function SurveyModal({ projectId }: { projectId?: string }) {
+export function SurveyModal({
+  projectId,
+  openInitially = false,
+}: {
+  projectId?: string;
+  openInitially?: boolean;
+}) {
   const { user } = useUser();
   const [open, setOpen] = useState(false);
   const [productType, setProductType] = useState("");
@@ -22,6 +30,7 @@ export function SurveyModal({ projectId }: { projectId?: string }) {
   const [goal, setGoal] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  // const [open, setOpen] = useState(openInitially);
 
   const handleSubmit = async () => {
     setLoading(true);

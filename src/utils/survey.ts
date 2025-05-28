@@ -1,3 +1,4 @@
+// SurveyForm.ts
 import { supabase } from "@/utils/supabase";
 
 type SurveyPayload = {
