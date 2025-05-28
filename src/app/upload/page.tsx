@@ -17,32 +17,6 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
 import SurveyModal from "@/components/survey/SurveyModal"; // ⬅️ Make sure the path is correct
 
-const { user } = useUser();
-const [showSurvey, setShowSurvey] = useState(false);
-
-useEffect(() => {
-  const checkSurveyStatus = async () => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email) return;
-
-    const { data, error } = await supabase
-      .from("survey_responses")
-      .select("id")
-      .eq("user_email", email)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error checking survey:", error);
-    }
-
-    if (!data) {
-      setShowSurvey(true); // Show modal only if no survey exists
-    }
-  };
-
-  checkSurveyStatus();
-}, [user]);
-
 const personalities = {
   Nova: {
     description: "You're a wise and encouraging ad guide.",
@@ -174,6 +148,32 @@ export default function UploadPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
+
+  // const { user } = useUser();
+  const [showSurvey, setShowSurvey] = useState(false);
+
+  useEffect(() => {
+    const checkSurveyStatus = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      const { data, error } = await supabase
+        .from("survey_responses")
+        .select("id")
+        .eq("user_email", email)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking survey:", error);
+      }
+
+      if (!data) {
+        setShowSurvey(true); // Show modal only if no survey exists
+      }
+    };
+
+    checkSurveyStatus();
+  }, [user]);
 
   // ✅ Scroll to bottom on new message
   useEffect(() => {
