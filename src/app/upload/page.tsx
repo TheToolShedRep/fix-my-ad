@@ -15,7 +15,7 @@ import { supabase } from "@/utils/supabase";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
-// import { validateVideoDuration } from "@/utils/validateDuration";
+import SurveyModal from "@/components/survey/SurveyModal"; // ⬅️ Make sure the path is correct
 
 const personalities = {
   Nova: {

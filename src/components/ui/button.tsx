@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export type Variant = "default" | "ghost";
+export type Variant = "default" | "ghost" | "outline";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -11,6 +11,7 @@ export interface ButtonProps
 const variantClasses: Record<Variant, string> = {
   default: "bg-blue-600 hover:bg-blue-700 text-white",
   ghost: "bg-transparent hover:bg-gray-700 text-white",
+  outline: "border border-gray-600 text-white hover:bg-gray-800", // <-- added
 };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
