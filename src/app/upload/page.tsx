@@ -37,7 +37,7 @@ type Message = { role: "user" | "ai"; content: string };
 let currentAudio: HTMLAudioElement | null = null;
 
 export default function UploadPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [chat, setChat] = useState<Message[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -133,12 +133,14 @@ export default function UploadPage() {
       }
 
       if (!data) {
-        setShowSurvey(true);
+        setShowSurvey(true); // ✅ Show only if survey not taken
       }
     };
 
-    checkSurveyStatus();
-  }, [user]);
+    if (isLoaded && user) {
+      checkSurveyStatus(); // ✅ Run once Clerk is fully loaded
+    }
+  }, [isLoaded, user]);
 
   const validateVideoDuration = async (
     file: File,
