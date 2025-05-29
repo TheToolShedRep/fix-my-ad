@@ -4,12 +4,12 @@ import { SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
 
-const handleStripeCheckout = async (email: string) => {
+const handleTryProClick = async () => {
   try {
     const res = await fetch("/api/create-checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: "" }), // Let Stripe collect email
     });
 
     const data = await res.json();
@@ -61,13 +61,7 @@ export default function PricingTiers() {
         </div>
         <Button
           className="w-full text-lg bg-purple-600 hover:bg-purple-700"
-          onClick={() => {
-            if (!user?.primaryEmailAddress?.emailAddress) {
-              alert("Please sign in first.");
-              return;
-            }
-            handleStripeCheckout(user.primaryEmailAddress.emailAddress);
-          }}
+          onClick={handleTryProClick}
         >
           Try Pro
         </Button>
