@@ -106,6 +106,7 @@ export function SurveyModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any extra context or background info?"
+              className="text-gray-900"
             />
           </div>
         </div>
