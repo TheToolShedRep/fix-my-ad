@@ -3,6 +3,7 @@
 import { SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
+import UpgradeButton from "../UpgradeButton";
 
 const handleTryProClick = async () => {
   try {
@@ -59,12 +60,7 @@ export default function PricingTiers() {
           </ul>
           <p className="text-white text-3xl font-bold mb-4">$10/mo</p>
         </div>
-        <Button
-          className="w-full text-lg bg-purple-600 hover:bg-purple-700"
-          onClick={handleTryProClick}
-        >
-          Try Pro
-        </Button>
+        <UpgradeButton className="w-full text-lg bg-purple-600 hover:bg-purple-700" />
       </div>
     </section>
   );

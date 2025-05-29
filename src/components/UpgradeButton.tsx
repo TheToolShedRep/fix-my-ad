@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 
-export default function UpgradeButton() {
+export default function UpgradeButton({
+  className = "",
+}: {
+  className?: string;
+}) {
   const { user } = useUser();
   const router = useRouter();
   const [surveyExists, setSurveyExists] = useState<boolean | null>(null);
@@ -51,7 +55,7 @@ export default function UpgradeButton() {
   };
 
   return (
-    <Button onClick={handleUpgrade} className="mt-4">
+    <Button onClick={handleUpgrade} className={`mt-4 ${className}`}>
       Get Pro!
     </Button>
   );
