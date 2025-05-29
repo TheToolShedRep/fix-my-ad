@@ -73,7 +73,7 @@ export default function PricingTiers() {
         </h2>
         <p className="text-gray-300 mb-4">
           Fix My Ad is evolving into a full-stack marketing assistant —
-          everything you'd expect from a marketing team, all in one tool.
+          everything you'd need if you are a marketing team, all in one tool.
         </p>
         <ul className="list-disc list-inside text-gray-300 space-y-1">
           <li>Campaign planning & performance tools</li>
