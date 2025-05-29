@@ -54,14 +54,14 @@ export function SurveyModal({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <>
-          {/* <h3 className="text-white">
+        {/* <> */}
+        {/* <h3 className="text-white">
             Taking the <span className="text-red-500 font-bold">survey</span>{" "}
             will customize the results. If you want better results, please take{" "}
             <span className="text-red-500 font-bold">survey</span>.
           </h3> */}
-          <Button variant="outline">📝 Take Project Survey</Button>
-        </>
+        <Button variant="outline">📝 Take Project Survey</Button>
+        {/* </> */}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
