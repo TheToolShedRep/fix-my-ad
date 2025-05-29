@@ -97,29 +97,19 @@ export default function HomePage() {
           anytime to unlock Pro features.
         </p>
 
-        {/* <SignedOut>
-    <SignInButton
-      mode="redirect"
-      afterSignInUrl="/upload"
-      afterSignUpUrl="/survey"
-    >
-      <Button className="text-lg px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition">
-        Get Started Free
-      </Button>
-    </SignInButton>
-  </SignedOut> */}
-
-        <Button
-          className="text-lg px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition"
-          onClick={() => {
-            RedirectToSignIn({
-              afterSignInUrl: "/upload",
-              afterSignUpUrl: "/survey",
-            });
-          }}
-        >
-          Get Started Free
-        </Button>
+        <SignedOut>
+          <Button
+            className="text-lg px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition"
+            onClick={() => {
+              RedirectToSignIn({
+                afterSignInUrl: "/upload",
+                afterSignUpUrl: "/survey",
+              });
+            }}
+          >
+            Get Started Free
+          </Button>
+        </SignedOut>
 
         <SignedIn>
           <Button
