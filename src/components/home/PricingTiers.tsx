@@ -2,8 +2,30 @@
 
 import { SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@clerk/nextjs";
+
+const handleStripeCheckout = async (email: string) => {
+  try {
+    const res = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Failed to start Stripe checkout.");
+    }
+  } catch (err) {
+    console.error("Stripe checkout error:", err);
+    alert("Something went wrong. Please try again.");
+  }
+};
 
 export default function PricingTiers() {
+  const { user } = useUser();
   return (
     <section className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto my-12">
       {/* Free Tier */}
@@ -37,14 +59,18 @@ export default function PricingTiers() {
           </ul>
           <p className="text-white text-3xl font-bold mb-4">$10/mo</p>
         </div>
-        <SignUpButton
-          mode="redirect"
-          fallbackRedirectUrl="/survey?from=pro-upgrade"
+        <Button
+          className="w-full text-lg bg-purple-600 hover:bg-purple-700"
+          onClick={() => {
+            if (!user?.primaryEmailAddress?.emailAddress) {
+              alert("Please sign in first.");
+              return;
+            }
+            handleStripeCheckout(user.primaryEmailAddress.emailAddress);
+          }}
         >
-          <Button className="w-full text-lg bg-purple-600 hover:bg-purple-700">
-            Try Pro
-          </Button>
-        </SignUpButton>
+          Try Pro
+        </Button>
       </div>
     </section>
   );
