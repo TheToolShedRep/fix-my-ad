@@ -46,7 +46,7 @@ export default function SurveyForm() {
         type="text"
         placeholder="Tone (fun, serious, elegant...)"
         onChange={(e) => setForm({ ...form, tone: e.target.value })}
-        className="w-full p-2 rounded bg-gray-800 text-white"
+        className="w-full p-2 rounded bg-gray-800 gray-900"
         required
       />
 
