@@ -1,16 +1,47 @@
-import Image from "next/image";
-import styles from "./page.module.css";
-import { Button } from "@/components/ui/button";
-import UpgradeButton from "@/components/UpgradeButton";
+// app/page.tsx
+"use client";
 
-export default function Home() {
+import { useUser } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/utils/supabase";
+
+export default function HomeRedirect() {
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    const checkSurvey = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+
+      const { data, error } = await supabase
+        .from("survey_responses")
+        .select("id")
+        .eq("user_email", email)
+        .maybeSingle();
+
+      if (error) {
+        console.error("🔴 Survey check error:", error);
+        return;
+      }
+
+      if (!data) {
+        console.log("🛑 No survey found. Redirecting to /survey");
+        router.replace("/survey");
+      } else {
+        console.log("✅ Survey found. Redirecting to /upload");
+        router.replace("/upload");
+      }
+    };
+
+    checkSurvey();
+  }, [user, isLoaded]);
+
   return (
-    <main className="h-screen flex items-center justify-center bg-black text-white">
-      <h1 className="text-4xl font-bold">Tailwind is working ✅</h1>
-      <Button>Analyze My Ad</Button>
-
-      <h1 className="text-2xl font-bold">Fix My Ad</h1>
-      <UpgradeButton />
+    <main className="h-screen flex items-center justify-center text-white">
+      <p>Redirecting...</p>
     </main>
   );
 }
