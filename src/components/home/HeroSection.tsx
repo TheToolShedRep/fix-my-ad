@@ -1,9 +1,9 @@
 export default function HeroSection() {
   return (
     <section
-      className="relative bg-contain bg-no-repeat bg-center text-white min-h-[60vh] flex items-center justify-center px-6"
+      className="relative bg-cover bg-center text-white min-h-[60vh] flex items-center justify-center px-6"
       style={{
-        backgroundImage: "url('./images/hero-bg.png')",
+        backgroundImage: "url('/images/hero-bg.png')",
       }}
     >
       {/* Overlay for contrast */}
