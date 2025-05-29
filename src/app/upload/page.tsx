@@ -547,7 +547,7 @@ export default function UploadPage() {
         )}
 
         {/* Survey Modal (shown once for new users) */}
-        <SurveyModal openInitially />
+        <SurveyModal />
       </div>
     </DashboardLayout>
   );
