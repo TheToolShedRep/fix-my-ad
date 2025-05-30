@@ -6,7 +6,7 @@ import {
   RedirectToSignIn,
   SignUpButton,
 } from "@clerk/nextjs";
-("use client");
+// ("use client");
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
