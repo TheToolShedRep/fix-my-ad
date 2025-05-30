@@ -21,7 +21,13 @@ export default function WaitlistForm() {
   console.log("📤 Submitting payload:", payload);
 
   const handleSubmit = async () => {
-    if (!email && !user?.primaryEmailAddress?.emailAddress) {
+    if (!(email || user?.primaryEmailAddress?.emailAddress)) {
+      toast.error("Please enter a valid email.");
+      return;
+    }
+
+    const finalEmail = email || user?.primaryEmailAddress?.emailAddress;
+    if (!finalEmail) {
       toast.error("Please enter a valid email.");
       return;
     }
