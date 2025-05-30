@@ -3,6 +3,9 @@ import { createClient } from "@supabase/supabase-js"; // or your actual import p
 import { createSupabaseClient } from "@/utils/supabase/server";
 
 export async function POST(req: NextRequest) {
+  const body = await req.json();
+  console.log("📥 Received waitlist POST:", body);
+
   try {
     const { email, user_id } = await req.json();
 
