@@ -14,7 +14,7 @@ export default function WaitlistForm() {
   const [joined, setJoined] = useState(false);
 
   const payload = {
-    email: user?.primaryEmailAddress?.emailAddress,
+    email: user,
     user_id: user?.id,
   };
 
