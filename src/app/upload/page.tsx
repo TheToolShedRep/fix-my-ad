@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
 import SurveyModal from "@/components/survey/SurveyModal";
+import Topbar from "@/components/home/Topbar";
 
 const personalities = {
   Nova: {
@@ -364,6 +365,7 @@ export default function UploadPage() {
       }}
     >
       <div className="min-h-screen flex flex-col items-center px-4 bg-gray-950 text-white">
+        <Topbar />
         <h1 className="text-3xl font-bold mt-6 mb-4">Upload an Ad</h1>
 
         {/* Upload Box */}
