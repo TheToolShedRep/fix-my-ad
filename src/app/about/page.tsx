@@ -3,7 +3,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { FaTwitter, FaLinkedin, FaYoutube } from "react-icons/fa";
+import { FaInstagram, FaTiktok, FaLinkedin, FaYoutube } from "react-icons/fa";
 
 export default function AboutPage() {
   return (
@@ -64,9 +64,10 @@ export default function AboutPage() {
 
       {/* Socials */}
       <div className="flex items-center gap-4 mt-8">
-        <SocialIcon name="Twitter" icon={<FaTwitter />} href="#" />
+        <SocialIcon name="TikTok" icon={<FaTiktok />} href="#" />
         <SocialIcon name="LinkedIn" icon={<FaLinkedin />} href="#" />
         <SocialIcon name="YouTube" icon={<FaYoutube />} href="#" />
+        <SocialIcon name="Instagram" icon={<FaInstagram />} href="#" />
         {/* Add more social links as needed */}
       </div>
     </section>
