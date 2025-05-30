@@ -46,8 +46,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Right side: links */}
-      <div className="flex space-x-6">
+      {/* Top: Links */}
+      <div className="flex justify-center space-x-6">
         <Link href="/terms" className="hover:text-white transition">
           Terms and Conditions
         </Link>

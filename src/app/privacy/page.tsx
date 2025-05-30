@@ -1,8 +1,11 @@
 "use client";
 
+import Topbar from "@/components/home/Topbar";
+
 export default function PrivacyPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 text-white">
+      <Topbar />
       <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
       <p className="mb-4">
         <strong>Last updated:</strong> [Insert Date]
