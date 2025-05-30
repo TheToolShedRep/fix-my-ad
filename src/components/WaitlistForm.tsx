@@ -1,4 +1,3 @@
-// File: components/WaitlistSignup.tsx
 "use client";
 
 import { useUser } from "@clerk/nextjs";
@@ -8,50 +7,62 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function WaitlistForm() {
+  // Get current user from Clerk
   const { user } = useUser();
+
+  // Local state for email (used if user is not signed in)
   const [email, setEmail] = useState("");
+
+  // Loading and success state
   const [loading, setLoading] = useState(false);
   const [joined, setJoined] = useState(false);
 
-  const payload = {
-    email: user,
-    user_id: user?.id,
-  };
-
-  console.log("📤 Submitting payload:", payload);
-
+  // Handle form submission
   const handleSubmit = async () => {
-    if (!(email || user?.primaryEmailAddress?.emailAddress)) {
-      toast.error("Please enter a valid email.");
-      return;
-    }
-
+    // Determine which email to use: user-supplied or Clerk user email
     const finalEmail = email || user?.primaryEmailAddress?.emailAddress;
+
+    // If neither is present, show error
     if (!finalEmail) {
       toast.error("Please enter a valid email.");
       return;
     }
 
+    // Build payload with email and (optional) user ID
+    const payload = {
+      email: finalEmail,
+      user_id: user?.id || null,
+    };
+
+    console.log("📤 Submitting payload:", payload);
+
     setLoading(true);
-    const targetEmail = user?.primaryEmailAddress?.emailAddress || email;
+
+    // Choose the correct endpoint depending on auth status
     const endpoint = user ? "/api/join-waitlist" : "/api/join-public-waitlist";
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: targetEmail }),
-    });
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      toast.success("🎉 You're on the list!");
-      setJoined(true);
-    } else {
-      toast.error("Something went wrong. Try again.");
+      if (res.ok) {
+        toast.success("🎉 You're on the list!");
+        setJoined(true);
+      } else {
+        toast.error("Something went wrong. Try again.");
+      }
+    } catch (error) {
+      console.error("Join waitlist error:", error);
+      toast.error("Failed to connect. Try again later.");
     }
 
     setLoading(false);
   };
 
+  // Show confirmation if already joined
   if (joined) {
     return (
       <p className="text-green-400 mt-2">You're signed up for early access!</p>
@@ -60,6 +71,7 @@ export default function WaitlistForm() {
 
   return (
     <div className="flex flex-col sm:flex-row gap-2 mt-4">
+      {/* Show email input if not signed in */}
       {!user && (
         <Input
           type="email"
@@ -69,6 +81,7 @@ export default function WaitlistForm() {
           onChange={(e) => setEmail(e.target.value)}
         />
       )}
+
       <Button
         onClick={handleSubmit}
         disabled={loading}
