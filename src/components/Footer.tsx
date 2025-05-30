@@ -46,6 +46,16 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* Right side: links */}
+      <div className="flex space-x-6">
+        <Link href="/terms" className="hover:text-white transition">
+          Terms and Conditions
+        </Link>
+        <Link href="/privacy" className="hover:text-white transition">
+          Privacy Policy
+        </Link>
+      </div>
+
       {/* Bottom - Copyright */}
       <div className="text-center text-sm text-gray-600 mt-10">
         © {new Date().getFullYear()} Fix My Ad. All rights reserved.
