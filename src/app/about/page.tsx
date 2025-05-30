@@ -2,6 +2,7 @@
 
 "use client";
 
+import Footer from "@/components/Footer";
 import Menu from "@/components/home/Menu";
 import Topbar from "@/components/home/Topbar";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ export default function AboutPage() {
         <SocialIcon name="Instagram" icon={<FaInstagram />} href="#" />
         {/* Add more social links as needed */}
       </div>
+      <Footer />
     </section>
   );
 }

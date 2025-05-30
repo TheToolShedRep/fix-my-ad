@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Topbar from "@/components/home/Topbar";
 import Menu from "@/components/home/Menu";
+import Footer from "@/components/Footer";
 
 export default function ComingSoonPage() {
   const [email, setEmail] = useState("");
@@ -100,6 +101,7 @@ export default function ComingSoonPage() {
           You're signed up for early access!
         </p>
       )}
+      <Footer />
     </div>
   );
 }
