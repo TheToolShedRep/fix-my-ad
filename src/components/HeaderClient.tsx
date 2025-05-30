@@ -17,6 +17,7 @@ export default function HeaderClient() {
           alt="User avatar"
           className="w-8 h-8 rounded-full"
         />
+        <span className="text-xl font-bold text-white">FMA</span>
 
         {/* Display full name or email */}
         <span className="text-sm text-gray-300">
