@@ -6,6 +6,8 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import Topbar from "@/components/home/Topbar";
+import Menu from "@/components/home/Menu";
 
 export default function ComingSoonPage() {
   const [email, setEmail] = useState("");
@@ -38,6 +40,8 @@ export default function ComingSoonPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-16 text-center">
+      <Topbar />
+      <Menu />
       <h1 className="text-4xl sm:text-5xl font-bold mb-4">
         Fix My Ad is growing into something bigger.
       </h1>
