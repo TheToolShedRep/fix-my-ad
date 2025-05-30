@@ -4,10 +4,8 @@ import { Button } from "../ui/button";
 export default function HeroSection() {
   return (
     <section
-      className="relative bg-cover bg-center text-white min-h-[60vh] flex items-center justify-center px-6"
-      style={{
-        backgroundImage: "url('/images/hero-bg.png')",
-      }}
+      className="relative text-white min-h-[60vh] flex items-center justify-center px-6
+                 bg-black md:bg-[url('/images/hero-bg.png')] bg-cover bg-center"
     >
       {/* Overlay for contrast */}
       <div className="absolute inset-0 bg-black/60 z-0" />
