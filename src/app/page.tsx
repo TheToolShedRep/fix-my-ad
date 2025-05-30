@@ -3,6 +3,7 @@ import PricingTiers from "@/components/home/PricingTiers";
 import CallToAction from "@/components/home/CallToAction";
 import Topbar from "@/components/home/Topbar";
 import Menu from "@/components/home/Menu";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
       <HeroSection />
       <PricingTiers />
       <CallToAction />
+      <Footer />
     </main>
   );
 }

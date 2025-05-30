@@ -84,12 +84,11 @@ export default function PricingTiers() {
             <li>Per-seat pricing for agencies & teams</li>
           </ul>
 
-          {/* Waitlist form */}
-          <WaitlistForm />
-
           <p className="text-sm text-gray-500 mt-4 italic">
             Join now to lock in early access and future perks.
           </p>
+          {/* Waitlist form */}
+          <WaitlistForm />
         </div>
       </div>
     </section>
