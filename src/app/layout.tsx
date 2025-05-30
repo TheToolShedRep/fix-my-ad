@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider, SignedOut } from "@clerk/nextjs";
-import HeaderClient from "@/components/HeaderClient";
+import { ClerkProvider } from "@clerk/nextjs";
+import ShowHeaderClient from "@/components/ShowHeaderClient";
 import "./globals.css";
 import { Toaster } from "sonner";
 
@@ -27,11 +27,8 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} bg-gray-950 text-white`}
         >
-          {/* Only show header if NOT signed in */}
-          <SignedOut>
-            <HeaderClient />
-          </SignedOut>
-
+          {/* ✅ Now safe to use */}
+          <ShowHeaderClient />
           {children}
           <Toaster />
         </body>
