@@ -13,6 +13,13 @@ export default function WaitlistForm() {
   const [loading, setLoading] = useState(false);
   const [joined, setJoined] = useState(false);
 
+  const payload = {
+    email: user?.primaryEmailAddress?.emailAddress,
+    user_id: user?.id,
+  };
+
+  console.log("📤 Submitting payload:", payload);
+
   const handleSubmit = async () => {
     if (!email && !user?.primaryEmailAddress?.emailAddress) {
       toast.error("Please enter a valid email.");
