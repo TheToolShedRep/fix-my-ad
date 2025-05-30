@@ -2,12 +2,14 @@
 
 "use client";
 
+import Menu from "@/components/home/Menu";
 import { Button } from "@/components/ui/button";
 import { FaInstagram, FaTiktok, FaLinkedin, FaYoutube } from "react-icons/fa";
 
 export default function AboutPage() {
   return (
     <section className="max-w-3xl mx-auto px-6 py-16 text-white">
+      <Menu />
       {/* Header */}
       <h1 className="text-4xl font-bold mb-4">About Fix My Ad</h1>
       <p className="text-lg text-gray-300 mb-10">
