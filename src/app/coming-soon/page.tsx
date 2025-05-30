@@ -42,7 +42,7 @@ export default function ComingSoonPage() {
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-16 text-center">
       <Topbar />
       <Menu />
-      <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+      <h1 className="text-4xl sm:text-5xl font-bold mb-4 mt-4">
         Fix My Ad is growing into something bigger.
       </h1>
       <p className="max-w-2xl text-gray-400 text-lg mb-8">
