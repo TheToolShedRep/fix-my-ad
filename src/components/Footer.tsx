@@ -47,7 +47,7 @@ export default function Footer() {
       </div>
 
       {/* Top: Links */}
-      <div className="flex justify-center space-x-6 mt-8git add .">
+      <div className="flex justify-center space-x-6 mt-10">
         <Link href="/terms" className="hover:text-white transition">
           Terms and Conditions
         </Link>
