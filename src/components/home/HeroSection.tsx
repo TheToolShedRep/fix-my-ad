@@ -1,3 +1,6 @@
+import { SignUpButton } from "@clerk/nextjs";
+import { Button } from "../ui/button";
+
 export default function HeroSection() {
   return (
     <section
@@ -18,6 +21,11 @@ export default function HeroSection() {
           Get instant AI feedback on your short-form ads. Improve conversions,
           clarity, and creativity — in seconds.
         </p>
+        <SignUpButton mode="redirect" fallbackRedirectUrl="/survey">
+          <Button variant="outline" className="w-full text-lg">
+            Sign Up Free
+          </Button>
+        </SignUpButton>
       </div>
     </section>
   );
