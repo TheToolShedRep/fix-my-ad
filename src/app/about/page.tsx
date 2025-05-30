@@ -3,12 +3,14 @@
 "use client";
 
 import Menu from "@/components/home/Menu";
+import Topbar from "@/components/home/Topbar";
 import { Button } from "@/components/ui/button";
 import { FaInstagram, FaTiktok, FaLinkedin, FaYoutube } from "react-icons/fa";
 
 export default function AboutPage() {
   return (
     <section className="max-w-3xl mx-auto px-6 py-16 text-white">
+      <Topbar />
       <Menu />
       {/* Header */}
       <h1 className="text-4xl font-bold mb-4">About Fix My Ad</h1>
