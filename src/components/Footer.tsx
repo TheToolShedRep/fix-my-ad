@@ -47,7 +47,7 @@ export default function Footer() {
       </div>
 
       {/* Top: Links */}
-      <div className="flex justify-center space-x-6 mt-4">
+      <div className="flex justify-center space-x-6 mt-8git add .">
         <Link href="/terms" className="hover:text-white transition">
           Terms and Conditions
         </Link>
@@ -57,7 +57,7 @@ export default function Footer() {
       </div>
 
       {/* Bottom - Copyright */}
-      <div className="text-center text-sm text-gray-600 mt-6">
+      <div className="text-center text-sm text-gray-600 mt-4">
         <p>
           © {new Date().getFullYear()} The ToolShed. All rights reserved. Built
           in Atlanta by Akhirah Strong.
