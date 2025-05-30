@@ -58,7 +58,10 @@ export default function Footer() {
 
       {/* Bottom - Copyright */}
       <div className="text-center text-sm text-gray-600 mt-10">
-        © {new Date().getFullYear()} Fix My Ad. All rights reserved.
+        <p>
+          © {new Date().getFullYear()} The ToolShed. All rights reserved. Built
+          in Atlanta by Akhirah Strong.
+        </p>
       </div>
     </footer>
   );
