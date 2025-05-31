@@ -19,18 +19,25 @@ import { useUser } from "@clerk/nextjs";
 export function SurveyModal({
   projectId,
   openInitially = false,
+  open: externalOpen,
+  setOpen: setExternalOpen,
 }: {
   projectId?: string;
   openInitially?: boolean;
+  open?: boolean;
+  setOpen?: (val: boolean) => void;
 }) {
   const { user } = useUser();
-  const [open, setOpen] = useState(false);
+  // const [open, setOpen] = useState(false);
   const [productType, setProductType] = useState("");
   const [platform, setPlatform] = useState("");
   const [goal, setGoal] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   // const [open, setOpen] = useState(openInitially);
+  const [internalOpen, setInternalOpen] = useState(openInitially);
+  const open = externalOpen ?? internalOpen;
+  const setOpen = setExternalOpen ?? setInternalOpen;
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -53,16 +60,16 @@ export function SurveyModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {/* <> */}
-        {/* <h3 className="text-white">
+      {/* <DialogTrigger asChild>
+        <>
+          <h3 className="text-white">
             Taking the <span className="text-red-500 font-bold">survey</span>{" "}
             will customize the results. If you want better results, please take{" "}
             <span className="text-red-500 font-bold">survey</span>.
-          </h3> */}
-        {/* <Button variant="outline">📝 Take Project Survey</Button> */}
-        {/* </> */}
-      </DialogTrigger>
+          </h3>
+          <Button variant="outline">📝 Take Project Survey</Button>
+        </>
+      </DialogTrigger> */}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Quick Survey</DialogTitle>

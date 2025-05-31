@@ -381,6 +381,7 @@ export default function UploadPage() {
           >
             🎯 Take Project Survey
           </Button>
+          <SurveyModal open={showSurvey} setOpen={setShowSurvey} />
         </div>
 
         <h1 className="text-3xl font-bold mt-6 mb-4">Upload an Ad</h1>
@@ -603,7 +604,7 @@ export default function UploadPage() {
         )}
 
         {/* Survey Modal (shown once for new users) */}
-        {showSurvey && <SurveyModal openInitially />}
+        {/* {showSurvey && <SurveyModal openInitially />} */}
       </div>
     </DashboardLayout>
   );
