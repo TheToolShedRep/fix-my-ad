@@ -11,13 +11,9 @@ export default function HeaderClient() {
   return (
     <header className="flex justify-between items-center px-4 py-3 border-b border-gray-800 bg-gray-950 text-white">
       <div className="flex items-center gap-3">
-        {/* User avatar */}
-        {/* <img
-          src={user.imageUrl}
-          alt="User avatar"
-          className="w-8 h-8 rounded-full"
-        /> */}
-        <span className="text-xl font-bold text-white">FMA</span>
+        {/* fma logo */}
+
+        {/* <span className="text-xl font-bold text-white">FMA</span> */}
 
         {/* Display full name or email */}
         <span className="text-sm text-gray-300">

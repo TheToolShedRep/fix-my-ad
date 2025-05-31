@@ -531,6 +531,43 @@ export default function UploadPage() {
               <div ref={chatEndRef} />
             </div>
 
+            {/* Re-critique + A/B Test Uploads */}
+            <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
+              {/* Revised Ad Upload */}
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition text-center w-full sm:w-auto">
+                🔁 Upload Revised Ad
+                <input
+                  type="file"
+                  accept="video/mp4,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setRevisedFile(file);
+                      setRevisedPreviewUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
+
+              {/* A/B Test Upload */}
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition text-center w-full sm:w-auto">
+                ⚖️ Upload for A/B Test
+                <input
+                  type="file"
+                  accept="video/mp4,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setABTestFile(file);
+                      setABPreviewUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
             {/* Follow-up */}
             <form
               onSubmit={handleFollowupSubmit}
