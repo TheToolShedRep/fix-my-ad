@@ -1,3 +1,4 @@
+// ✅ Full working version of upload/page.tsx with all features intact
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -10,16 +11,15 @@ import {
   Download,
   Clipboard,
 } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignedOut } from "@clerk/nextjs";
 import { supabase } from "@/utils/supabase";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
 import SurveyModal from "@/components/survey/SurveyModal";
-import { SignedOut } from "@clerk/nextjs";
-
 import Topbar from "@/components/home/Topbar";
 
+// Personalities
 const personalities = {
   Nova: {
     description: "You're a wise and encouraging ad guide.",
@@ -41,9 +41,6 @@ let currentAudio: HTMLAudioElement | null = null;
 
 export default function UploadPage() {
   const { user, isLoaded } = useUser();
-
-  // 🧠 Prevents rendering the page too early
-  if (!isLoaded) return null;
   const [chat, setChat] = useState<Message[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -59,46 +56,15 @@ export default function UploadPage() {
     {}
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Revised critique
   const [revisedFile, setRevisedFile] = useState<File | null>(null);
   const [revisedPreviewUrl, setRevisedPreviewUrl] = useState<string | null>(
     null
   );
   const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
 
-  // 📦 A/B Test Handler
-  const handleABTest = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    setABTestFile(file);
-    setABPreviewUrl(URL.createObjectURL(file));
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/ab-compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userEmail: user?.primaryEmailAddress?.emailAddress,
-          personality: selectedPersonality,
-          fileType: file.type === "video/mp4" ? "video" : "gif",
-        }),
-      });
-
-      const data = await res.json();
-      if (data?.result) {
-        setABResponse(data.result);
-      } else {
-        alert("Something went wrong with A/B test.");
-      }
-    } catch (err) {
-      console.error("A/B test error:", err);
-      alert("A/B comparison failed.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // A/B test
   const [abTestFile, setABTestFile] = useState<File | null>(null);
   const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
   const [abResponse, setABResponse] = useState<string | null>(null);
@@ -160,9 +126,22 @@ export default function UploadPage() {
   }, [user]);
 
   useEffect(() => {
+    const checkSurveyStatus = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+      const { data } = await supabase
+        .from("survey_responses")
+        .select("id")
+        .eq("user_email", email)
+        .maybeSingle();
+      if (!data) setShowSurvey(true);
+    };
+    if (isLoaded && user) checkSurveyStatus();
+  }, [isLoaded, user]);
+
+  useEffect(() => {
     const analyzeRevisedAd = async () => {
       if (!revisedFile || !user) return;
-
       setIsLoading(true);
       try {
         const res = await fetch("/api/revised-critique", {
@@ -174,145 +153,39 @@ export default function UploadPage() {
             fileType: revisedFile.type === "video/mp4" ? "video" : "gif",
           }),
         });
-
         const data = await res.json();
-        if (data?.result) {
-          setRevisedResponse(data.result);
-        } else {
-          toast("Failed to analyze revised ad.");
-        }
+        setRevisedResponse(data?.result || null);
       } catch (err) {
-        console.error("Revised critique error:", err);
-        toast("Revised critique request failed.");
+        toast("Revised critique failed.");
       } finally {
         setIsLoading(false);
       }
     };
-
     analyzeRevisedAd();
   }, [revisedFile]);
 
-  useEffect(() => {
-    console.log("✅ isLoaded:", isLoaded, "👤 user:", user);
+  const handleABTest = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
 
-    const checkSurveyStatus = async () => {
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (!email) return;
-
-      const { data, error } = await supabase
-        .from("survey_responses")
-        .select("id")
-        .eq("user_email", email)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error checking survey:", error);
-      }
-
-      if (!data) {
-        setShowSurvey(true); // ✅ Show only if survey not taken
-      }
-      console.log("🔍 showSurvey:", showSurvey);
-      console.log("📬 survey data check:", { data, error });
-    };
-
-    if (isLoaded && user) {
-      checkSurveyStatus(); // ✅ Run once Clerk is fully loaded
-    }
-  }, [isLoaded, user]);
-
-  const validateVideoDuration = async (
-    file: File,
-    maxSeconds: number
-  ): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      video.preload = "metadata";
-      video.onloadedmetadata = () => {
-        window.URL.revokeObjectURL(video.src);
-        resolve(video.duration <= maxSeconds);
-      };
-      video.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleFeedback = async (
-    message: string,
-    feedback: "thumbs_up" | "thumbs_down"
-  ) => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email || feedbackGiven[message]) return;
-
-    const title =
-      chat
-        .findLast((m) => m.role === "ai")
-        ?.content.split("\n")[0]
-        .slice(0, 100) || "Untitled";
-
-    const { error } = await supabase.from("chat_feedback").insert({
-      user_email: email,
-      message,
-      personality: selectedPersonality,
-      feedback,
-      title,
-    });
-
-    if (!error) {
-      setFeedbackGiven((prev) => ({ ...prev, [message]: feedback }));
-      toast("Feedback submitted", { description: "Thanks!" });
-    }
-  };
-
-  const handleFollowupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!followup.trim()) return;
-
-    if (!isProUser && followupCount >= 1) {
-      alert("Upgrade to Pro to ask unlimited follow-up questions.");
-      return;
-    }
-
+    setABTestFile(file);
+    setABPreviewUrl(URL.createObjectURL(file));
     setIsLoading(true);
-    const userMessage: Message = { role: "user", content: followup };
-    setChat((prev) => [...prev, userMessage, { role: "ai", content: "..." }]);
-    setFollowup("");
 
     try {
-      const res = await fetch("/api/critique", {
+      const res = await fetch("/api/ab-compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `${personalities[selectedPersonality].description}\n${chat
-            .map((m) => `${m.role}: ${m.content}`)
-            .join("\n\n")}\nFollow-up: ${followup}`,
+          userEmail: user?.primaryEmailAddress?.emailAddress,
+          personality: selectedPersonality,
+          fileType: file.type === "video/mp4" ? "video" : "gif",
         }),
       });
-
       const data = await res.json();
-      setChat((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: "ai", content: data.result };
-        return updated;
-      });
-
-      const email = user?.primaryEmailAddress?.emailAddress;
-      if (email) {
-        await supabase.from("chat_history").insert({
-          user_email: email,
-          personality: selectedPersonality,
-          title: data.result.split("\n")[0].slice(0, 100),
-          messages: [
-            ...chat,
-            userMessage,
-            { role: "ai", content: data.result },
-          ],
-        });
-      }
-
-      setFollowupCount((prev) => prev + 1);
+      setABResponse(data?.result || null);
     } catch (err) {
-      console.error("Follow-up error:", err);
-      alert("Could not get a response.");
+      toast("A/B comparison failed.");
     } finally {
       setIsLoading(false);
     }
@@ -364,11 +237,25 @@ export default function UploadPage() {
         localStorage.setItem("selectedChatId", inserted.id);
       }
     } catch (err) {
-      console.error("Initial analysis failed:", err);
-      alert("Something went wrong while analyzing.");
+      toast("Initial analysis failed.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const validateVideoDuration = async (
+    file: File,
+    maxSeconds: number
+  ): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(video.duration <= maxSeconds);
+      };
+      video.src = URL.createObjectURL(file);
+    });
   };
 
   const speakWithOpenAIStream = async ({
@@ -391,7 +278,6 @@ export default function UploadPage() {
         currentAudio.load();
         currentAudio = null;
       }
-
       onStart?.();
       const res = await fetch("/api/tts", {
         method: "POST",
@@ -414,11 +300,92 @@ export default function UploadPage() {
       };
       await audio.play();
     } catch (err) {
-      console.error("Audio error:", err);
-      alert("TTS playback error.");
+      toast("TTS playback error.");
       onEnd?.();
     }
   };
+
+  const handleFollowupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followup.trim()) return;
+
+    if (!isProUser && followupCount >= 1) {
+      alert("Upgrade to Pro to ask unlimited follow-up questions.");
+      return;
+    }
+
+    setIsLoading(true);
+    const userMessage: Message = { role: "user", content: followup };
+    setChat((prev) => [...prev, userMessage, { role: "ai", content: "..." }]);
+    setFollowup("");
+
+    try {
+      const res = await fetch("/api/critique", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `${personalities[selectedPersonality].description}\n${chat
+            .map((m) => `${m.role}: ${m.content}`)
+            .join("\n\n")}\nFollow-up: ${followup}`,
+        }),
+      });
+
+      const data = await res.json();
+      setChat((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "ai", content: data.result };
+        return updated;
+      });
+
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (email) {
+        await supabase.from("chat_history").insert({
+          user_email: email,
+          personality: selectedPersonality,
+          title: data.result.split("\n")[0].slice(0, 100),
+          messages: [
+            ...chat,
+            userMessage,
+            { role: "ai", content: data.result },
+          ],
+        });
+      }
+
+      setFollowupCount((prev) => prev + 1);
+    } catch (err) {
+      toast("Follow-up failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFeedback = async (
+    message: string,
+    feedback: "thumbs_up" | "thumbs_down"
+  ) => {
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email || feedbackGiven[message]) return;
+
+    const title =
+      chat
+        .findLast((m) => m.role === "ai")
+        ?.content.split("\n")[0]
+        .slice(0, 100) || "Untitled";
+
+    const { error } = await supabase.from("chat_feedback").insert({
+      user_email: email,
+      message,
+      personality: selectedPersonality,
+      feedback,
+      title,
+    });
+
+    if (!error) {
+      setFeedbackGiven((prev) => ({ ...prev, [message]: feedback }));
+      toast("Feedback submitted", { description: "Thanks!" });
+    }
+  };
+
   return (
     <DashboardLayout
       onSelectEntry={(messages) => {
@@ -439,7 +406,7 @@ export default function UploadPage() {
       <div className="min-h-screen flex flex-col items-center px-4 bg-gray-950 text-white">
         {!user && <Topbar />}
 
-        {/* Survey Prompt (make this more prominent) */}
+        {/* Survey Prompt */}
         <div className="w-full max-w-md bg-purple-900/40 border border-purple-600 text-purple-200 p-4 rounded mb-6">
           <p className="mb-2 text-sm">
             Help us personalize your AI feedback. Take a 1-minute project survey
@@ -535,7 +502,7 @@ export default function UploadPage() {
           </Button>
         )}
 
-        {/* Chat + Feedback */}
+        {/* Chat */}
         {chat.length > 0 && (
           <>
             <div className="mt-6 w-full max-w-xl space-y-4">
@@ -617,10 +584,9 @@ export default function UploadPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Re-critique + A/B Test Uploads */}
+            {/* Revised and A/B Uploads */}
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
-              {/* Revised Ad Upload */}
-              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition text-center w-full sm:w-auto">
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 🔁 Upload Revised Ad
                 <input
                   type="file"
@@ -635,32 +601,21 @@ export default function UploadPage() {
                   }}
                 />
               </label>
-
-              {/* A/B Test Upload */}
-              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 transition text-center w-full sm:w-auto">
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 ⚖️ Upload for A/B Test
                 <input
                   type="file"
                   accept="video/mp4,image/gif"
                   hidden
-                  // onChange={(e) => {
-                  //   const file = e.target.files?.[0];
-                  //   if (file) {
-                  //     setABTestFile(file);
-                  //     setABPreviewUrl(URL.createObjectURL(file));
-                  //   }
-                  // }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) {
-                      handleABTest(e); // ✅ Use existing logic
-                    }
+                    if (file) handleABTest(e);
                   }}
                 />
               </label>
             </div>
 
-            {/* Follow-up */}
+            {/* Follow-up Input */}
             <form
               onSubmit={handleFollowupSubmit}
               className="mt-4 w-full max-w-xl"
@@ -677,6 +632,26 @@ export default function UploadPage() {
               </Button>
             </form>
           </>
+        )}
+
+        {/* Revised Critique Result */}
+        {revisedResponse && (
+          <div className="mt-6 max-w-xl bg-gray-800 p-4 rounded-lg">
+            <h2 className="text-lg font-bold mb-2 text-purple-300">
+              🔁 Revised Ad Critique
+            </h2>
+            <p className="text-sm whitespace-pre-wrap">{revisedResponse}</p>
+          </div>
+        )}
+
+        {/* A/B Comparison Result */}
+        {abResponse && (
+          <div className="mt-6 max-w-xl bg-gray-800 p-4 rounded-lg">
+            <h2 className="text-lg font-bold mb-2 text-yellow-300">
+              🧪 A/B Test Result
+            </h2>
+            <p className="text-sm whitespace-pre-wrap">{abResponse}</p>
+          </div>
         )}
       </div>
     </DashboardLayout>
