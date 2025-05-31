@@ -41,6 +41,7 @@ let currentAudio: HTMLAudioElement | null = null;
 
 export default function UploadPage() {
   const { user, isLoaded } = useUser();
+
   // 🧠 Prevents rendering the page too early
   if (!isLoaded) return null;
   const [chat, setChat] = useState<Message[]>([]);
@@ -63,9 +64,45 @@ export default function UploadPage() {
     null
   );
   const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
+
+  // 📦 A/B Test Handler
+  const handleABTest = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setABTestFile(file);
+    setABPreviewUrl(URL.createObjectURL(file));
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/ab-compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: user?.primaryEmailAddress?.emailAddress,
+          personality: selectedPersonality,
+          fileType: file.type === "video/mp4" ? "video" : "gif",
+        }),
+      });
+
+      const data = await res.json();
+      if (data?.result) {
+        setABResponse(data.result);
+      } else {
+        alert("Something went wrong with A/B test.");
+      }
+    } catch (err) {
+      console.error("A/B test error:", err);
+      alert("A/B comparison failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const [abTestFile, setABTestFile] = useState<File | null>(null);
   const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
   const [abResponse, setABResponse] = useState<string | null>(null);
+
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
@@ -121,6 +158,39 @@ export default function UploadPage() {
     };
     check();
   }, [user]);
+
+  useEffect(() => {
+    const analyzeRevisedAd = async () => {
+      if (!revisedFile || !user) return;
+
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/revised-critique", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userEmail: user?.primaryEmailAddress?.emailAddress,
+            personality: selectedPersonality,
+            fileType: revisedFile.type === "video/mp4" ? "video" : "gif",
+          }),
+        });
+
+        const data = await res.json();
+        if (data?.result) {
+          setRevisedResponse(data.result);
+        } else {
+          toast("Failed to analyze revised ad.");
+        }
+      } catch (err) {
+        console.error("Revised critique error:", err);
+        toast("Revised critique request failed.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    analyzeRevisedAd();
+  }, [revisedFile]);
 
   useEffect(() => {
     console.log("✅ isLoaded:", isLoaded, "👤 user:", user);
@@ -576,8 +646,7 @@ export default function UploadPage() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setABTestFile(file);
-                      setABPreviewUrl(URL.createObjectURL(file));
+                      handleABTest(e); // ✅ Use existing logic
                     }
                   }}
                 />
@@ -602,9 +671,6 @@ export default function UploadPage() {
             </form>
           </>
         )}
-
-        {/* Survey Modal (shown once for new users) */}
-        {/* {showSurvey && <SurveyModal openInitially />} */}
       </div>
     </DashboardLayout>
   );
