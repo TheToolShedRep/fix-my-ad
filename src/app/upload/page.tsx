@@ -368,6 +368,21 @@ export default function UploadPage() {
     >
       <div className="min-h-screen flex flex-col items-center px-4 bg-gray-950 text-white">
         {!user && <Topbar />}
+
+        {/* Survey Prompt (make this more prominent) */}
+        <div className="w-full max-w-md bg-purple-900/40 border border-purple-600 text-purple-200 p-4 rounded mb-6">
+          <p className="mb-2 text-sm">
+            Help us personalize your AI feedback. Take a 1-minute project survey
+            before uploading.
+          </p>
+          <Button
+            onClick={() => setShowSurvey(true)}
+            className="bg-purple-600 hover:bg-purple-700 w-full"
+          >
+            🎯 Take Project Survey
+          </Button>
+        </div>
+
         <h1 className="text-3xl font-bold mt-6 mb-4">Upload an Ad</h1>
 
         {/* Upload Box */}
