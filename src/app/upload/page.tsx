@@ -643,6 +643,13 @@ export default function UploadPage() {
                   type="file"
                   accept="video/mp4,image/gif"
                   hidden
+                  // onChange={(e) => {
+                  //   const file = e.target.files?.[0];
+                  //   if (file) {
+                  //     setABTestFile(file);
+                  //     setABPreviewUrl(URL.createObjectURL(file));
+                  //   }
+                  // }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
