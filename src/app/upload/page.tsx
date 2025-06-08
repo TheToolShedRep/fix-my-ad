@@ -203,6 +203,28 @@ export default function UploadPage() {
     }
 
     try {
+      // const res = await fetch("/api/critique", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     userEmail: email,
+      //     personality: selectedPersonality,
+      //     fileType: file.type === "video/mp4" ? "video" : "gif",
+      //   }),
+      // });
+
+      // 1. Upload video to backend for conversion
+      const formData = new FormData();
+      formData.append("video", file);
+
+      const uploadRes = await fetch("http://localhost:3000/convert", {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadRes.json(); // optional: log or verify
+
+      // 2. THEN request critique using JSON
       const res = await fetch("/api/critique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
