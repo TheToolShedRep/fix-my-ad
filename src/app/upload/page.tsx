@@ -164,27 +164,86 @@ export default function UploadPage() {
     analyzeRevisedAd();
   }, [revisedFile]);
 
-  const handleABTest = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+  const handleABTest = async () => {
+    if (!file || !revisedFile || !user) {
+      toast("Please upload both original and revised videos.");
+      return;
+    }
 
-    setABTestFile(file);
-    setABPreviewUrl(URL.createObjectURL(file));
     setIsLoading(true);
+    setChat([]);
+    setABResponse(null);
+    setFollowup("");
+    setFollowupCount(0);
 
     try {
-      const res = await fetch("/api/ab-compare", {
+      // 1️⃣ Convert original video
+      const originalForm = new FormData();
+      originalForm.append("video", file);
+      const originalRes = await fetch("http://localhost:3000/convert", {
+        method: "POST",
+        body: originalForm,
+      });
+      if (!originalRes.ok) throw new Error("Original conversion failed");
+      const {
+        transcript: originalTranscript,
+        gifUrl: originalGif,
+        duration: originalDuration,
+        fileType: originalFileType,
+      } = await originalRes.json();
+
+      // 2️⃣ Convert revised video
+      const revisedForm = new FormData();
+      revisedForm.append("video", revisedFile);
+      const revisedRes = await fetch("http://localhost:3000/convert", {
+        method: "POST",
+        body: revisedForm,
+      });
+      if (!revisedRes.ok) throw new Error("Revised conversion failed");
+      const {
+        transcript: revisedTranscript,
+        gifUrl: revisedGif,
+        duration: revisedDuration,
+        fileType: revisedFileType,
+      } = await revisedRes.json();
+
+      // 3️⃣ Send both to A/B critique route
+      const critiqueRes = await fetch("/api/ab-compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userEmail: user?.primaryEmailAddress?.emailAddress,
           personality: selectedPersonality,
-          fileType: file.type === "video/mp4" ? "video" : "gif",
+          originalTranscript,
+          originalGif,
+          originalDuration,
+          originalFileType,
+          revisedTranscript,
+          revisedGif,
+          revisedDuration,
+          revisedFileType,
         }),
       });
-      const data = await res.json();
-      setABResponse(data?.result || null);
+
+      if (!critiqueRes.ok) throw new Error("Critique failed");
+      const { result } = await critiqueRes.json();
+
+      const aiMessage = { role: "ai" as const, content: result };
+      setChat([aiMessage]);
+      setABResponse(result);
+
+      // ✅ Save to Supabase
+      await supabase.from("chat_history").insert({
+        user_email: user.primaryEmailAddress?.emailAddress,
+        title: `${file.name} vs ${revisedFile.name}`,
+        personality: selectedPersonality,
+        messages: [aiMessage],
+        created_at: new Date().toISOString(),
+      });
+
+      toast.success("✅ A/B critique complete!");
     } catch (err) {
+      console.error("❌ A/B Test error:", err);
       toast("A/B comparison failed.");
     } finally {
       setIsLoading(false);
@@ -620,7 +679,8 @@ export default function UploadPage() {
                   hidden
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) handleABTest(e);
+                    if (file) setRevisedFile(file); // 👈 Save the revised file
+                    handleABTest(); // 👈 Call without arguments now
                   }}
                 />
               </label>
