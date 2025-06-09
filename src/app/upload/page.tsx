@@ -191,79 +191,68 @@ export default function UploadPage() {
     }
   };
 
+  // 🧠 START: handleInitialAnalyze
   const handleInitialAnalyze = async () => {
     if (!file) return;
-    setIsLoading(true);
 
-    const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email) {
-      alert("Please log in to analyze your ad.");
-      setIsLoading(false);
-      return;
-    }
+    setIsLoading(true);
+    setChat([]);
+    setFollowup("");
+    setFollowupCount(0);
 
     try {
-      // const res = await fetch("/api/critique", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     userEmail: email,
-      //     personality: selectedPersonality,
-      //     fileType: file.type === "video/mp4" ? "video" : "gif",
-      //   }),
-      // });
-
-      // 1. Upload video to backend for conversion
       const formData = new FormData();
       formData.append("video", file);
 
-      const uploadRes = await fetch("http://localhost:3000/convert", {
+      // 1️⃣ Send to backend /convert to get transcript, gif, metadata
+      const convertRes = await fetch("http://localhost:3000/convert", {
         method: "POST",
         body: formData,
       });
 
-      const uploadData = await uploadRes.json(); // optional: log or verify
+      if (!convertRes.ok) throw new Error("Conversion failed");
+      const { transcript, gifUrl, duration, fileType } =
+        await convertRes.json();
 
-      // 2. THEN request critique using JSON
-      const res = await fetch("/api/critique", {
+      // 2️⃣ Send to backend /critique with prompt parts
+      const critiqueRes = await fetch("/api/critique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userEmail: email,
+          userEmail: user?.primaryEmailAddress?.emailAddress,
           personality: selectedPersonality,
-          fileType: file.type === "video/mp4" ? "video" : "gif",
+          transcript,
+          gifUrl,
+          duration,
+          fileType,
         }),
       });
 
-      const data = await res.json();
-      const userMessage: Message = {
-        role: "user",
-        content: "Please analyze this ad.",
-      };
-      const aiMessage: Message = { role: "ai", content: data.result };
-      setChat([userMessage, aiMessage]);
+      if (!critiqueRes.ok) throw new Error("Critique failed");
+      const { result } = await critiqueRes.json();
 
-      const title = data.result.split("\n")[0].slice(0, 100);
-      const { data: inserted } = await supabase
-        .from("chat_history")
-        .insert({
-          user_email: email,
-          personality: selectedPersonality,
-          title,
-          messages: [userMessage, aiMessage],
-        })
-        .select("id")
-        .single();
+      // 3️⃣ Set chat response in frontend
+      const initialMessage = { role: "ai" as "ai", content: result };
+      setChat([initialMessage]);
 
-      if (inserted?.id) {
-        localStorage.setItem("selectedChatId", inserted.id);
-      }
+      // 4️⃣ Save to Supabase (optional)
+      await supabase.from("chat_history").insert({
+        user_email: user?.primaryEmailAddress?.emailAddress,
+        title: file.name,
+        personality: selectedPersonality,
+        messages: [initialMessage],
+        created_at: new Date().toISOString(),
+      });
+
+      toast.success("✅ Analysis complete!");
     } catch (err) {
-      toast("Initial analysis failed.");
+      console.error("❌ Error in handleInitialAnalyze:", err);
+      toast.error("Something went wrong during analysis.");
     } finally {
       setIsLoading(false);
     }
   };
+  // 🧠 END: handleInitialAnalyze
 
   const validateVideoDuration = async (
     file: File,

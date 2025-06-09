@@ -1,25 +1,33 @@
-// 📦 Handles POST requests to /api/critique using the Next.js App Router
+// 🔄 Handles POST requests to /api/critique
 import { NextRequest, NextResponse } from "next/server";
 
-// 📡 Imports the OpenAI SDK to send prompts
+// 🤖 OpenAI SDK to send prompts
 import OpenAI from "openai";
 
-// 🗄️ Supabase client factory for database access (server-side)
+// 🗄️ Supabase client factory for server-side access
 import { createSupabaseClient } from "@/utils/supabase/server";
 
-// 🔑 Initialize OpenAI instance using your secret API key
+// 🔐 Initialize OpenAI client using secret key from .env
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🚀 Handles POST requests to this route
+// 🚀 POST handler — builds prompt and sends it to OpenAI
 export async function POST(req: NextRequest) {
   try {
-    // 📥 Parse the request body — expects userEmail or prompt
+    // 📥 Parse request body fields
     const body = await req.json();
-    const { userEmail, personality = "Nova", prompt: directPrompt } = body;
+    const {
+      userEmail, // required for survey-based prompt building
+      personality = "Nova", // chosen AI tone
+      prompt: directPrompt, // optional custom prompt override
+      transcript = "", // transcript from /convert
+      fileType = "video/mp4", // video format (e.g. video/mp4 or image/gif)
+      gifUrl = "", // preview image/gif url (optional)
+      duration = null, // duration in seconds (optional)
+    } = body;
 
-    // 🧱 Validate input
+    // 🧱 Validate required input
     if (!userEmail && !directPrompt) {
       console.error("❌ Missing userEmail or prompt in body:", body);
       return NextResponse.json(
@@ -30,36 +38,52 @@ export async function POST(req: NextRequest) {
 
     let finalPrompt = directPrompt;
 
-    // 🧠 If no directPrompt, build prompt from saved survey data
+    // 🧠 If no custom prompt, generate one using survey + metadata
     if (!directPrompt && userEmail) {
       const supabase = createSupabaseClient();
+
+      // 🗂️ Fetch user's survey profile (platform, ad_type, tone)
       const { data: profile, error } = await supabase
         .from("user_profiles")
         .select("platform, ad_type, tone")
         .eq("user_email", userEmail)
         .single();
 
+      // Set defaults if no profile found
       const platform = profile?.platform || "social media";
       const adType = profile?.ad_type || "generic";
       const tone = profile?.tone || "neutral";
+      const readableFileType = fileType?.replace("video/", "") || "video";
 
+      // 🧠 Build dynamic GPT prompt combining survey, transcript, and metadata
       finalPrompt = `
-You're a ${personality}, an expert in ad critique and optimization.
+You are ${personality}, an expert AI assistant who critiques video ads with clarity, strategy, and actionable insight.
 
-This is a ${platform} video ad for a ${adType} brand.
-The tone of the brand is "${tone}".
+🛠️ Ad context:
+- Platform: ${platform}
+- Brand type: ${adType}
+- Tone of brand: "${tone}"
+- Format: ${readableFileType}
+- Duration: ${duration ? `${duration} seconds` : "short-form"}
 
-Please review the video based on structure, engagement, and clarity.
+🎧 Transcript:
+"${transcript}"
+
+🎯 Task:
 Provide:
-- 3 strengths
-- 3 weaknesses
-- 3 specific improvements
-`;
+- 3 clear strengths
+- 3 weaknesses or potential issues
+- 3 specific improvement tips
+
+Be honest and helpful. Mention if the ad is missing a CTA, clarity, or emotional impact.
+
+${gifUrl ? `Optional preview: ${gifUrl}` : ""}
+      `.trim();
     }
 
-    console.log("🧠 Sending prompt to OpenAI:", finalPrompt);
+    console.log("🧠 Final prompt:", finalPrompt);
 
-    // 🤖 Call OpenAI Chat Completion
+    // 📡 Send prompt to OpenAI Chat model (GPT-4o)
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -74,9 +98,10 @@ Provide:
       ],
     });
 
-    // 📤 Return the AI’s response to the frontend
+    // 📤 Return result back to frontend
     return NextResponse.json({ result: res.choices[0].message.content });
   } catch (error: any) {
+    // 🚨 Handle unexpected errors
     console.error("❌ /api/critique error:", error?.message || error);
     return NextResponse.json(
       { error: "Internal server error" },
