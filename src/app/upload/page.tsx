@@ -710,7 +710,7 @@ export default function UploadPage() {
 
             {/* 🔁 Upload Revised Ad and ⚖️ A/B Test Uploads */}
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
-              🔁 Revised Ad
+              {/* 🔁 Revised Ad
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 🔁 Upload Revised Ad
                 <input
@@ -725,7 +725,7 @@ export default function UploadPage() {
                     }
                   }}
                 />
-              </label>
+              </label> */}
               {/* Prodiction performance */}
               <Button onClick={handlePerformancePredict}>
                 📈 Predict Performance
