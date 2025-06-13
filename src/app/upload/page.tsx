@@ -181,6 +181,7 @@ export default function UploadPage() {
             transcript: revisedData.transcript,
             duration: revisedData.duration || 0,
             fileType: revisedFile.type === "video/mp4" ? "video" : "gif",
+            gifUrl: revisedData.gifUrl,
           }),
         });
 
