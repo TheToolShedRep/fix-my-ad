@@ -150,7 +150,7 @@ export default function UploadPage() {
       setIsLoading(true);
 
       try {
-        // Step 1: Convert the revised video
+
         const convertRes = await fetch("/api/convert", {
           method: "POST",
           body: (() => {
