@@ -730,9 +730,9 @@ export default function UploadPage() {
               <Button onClick={handlePerformancePredict}>
                 📈 Predict Performance
               </Button>
-              <h3 className="text-lg font-semibold mt-4 mb-2">
+              {/* <h3 className="text-lg font-semibold mt-4 mb-2">
                 📈 Performance Prediction
-              </h3>
+              </h3> */}
               {/* 📤 Ad A (Original for A/B) */}
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 📤 Upload Ad A (Original)
