@@ -65,6 +65,9 @@ export default function UploadPage() {
   const [revisedResponse, setRevisedResponse] = useState<string | null>(null);
 
   // A/B test
+  const [abOriginal, setABOriginal] = useState<File | null>(null);
+  const [abRevised, setABRevised] = useState<File | null>(null);
+
   const [abTestFile, setABTestFile] = useState<File | null>(null);
   const [abPreviewUrl, setABPreviewUrl] = useState<string | null>(null);
   const [abResponse, setABResponse] = useState<string | null>(null);
@@ -164,87 +167,55 @@ export default function UploadPage() {
     analyzeRevisedAd();
   }, [revisedFile]);
 
-  const handleABTest = async () => {
-    if (!file || !revisedFile || !user) {
-      toast("Please upload both original and revised videos.");
-      return;
-    }
-
+  const handleABTest = async (originalFile: File, revisedFile: File) => {
+    if (!user || !originalFile || !revisedFile) return;
     setIsLoading(true);
-    setChat([]);
-    setABResponse(null);
-    setFollowup("");
-    setFollowupCount(0);
 
     try {
-      // 1️⃣ Convert original video
+      // 🔁 Upload original
       const originalForm = new FormData();
-      originalForm.append("video", file);
+      originalForm.append("video", originalFile);
       const originalRes = await fetch("http://localhost:3000/convert", {
         method: "POST",
         body: originalForm,
       });
-      if (!originalRes.ok) throw new Error("Original conversion failed");
-      const {
-        transcript: originalTranscript,
-        gifUrl: originalGif,
-        duration: originalDuration,
-        fileType: originalFileType,
-      } = await originalRes.json();
+      const originalData = await originalRes.json();
 
-      // 2️⃣ Convert revised video
+      // 🔁 Upload revised
       const revisedForm = new FormData();
       revisedForm.append("video", revisedFile);
       const revisedRes = await fetch("http://localhost:3000/convert", {
         method: "POST",
         body: revisedForm,
       });
-      if (!revisedRes.ok) throw new Error("Revised conversion failed");
-      const {
-        transcript: revisedTranscript,
-        gifUrl: revisedGif,
-        duration: revisedDuration,
-        fileType: revisedFileType,
-      } = await revisedRes.json();
+      const revisedData = await revisedRes.json();
 
-      // 3️⃣ Send both to A/B critique route
-      const critiqueRes = await fetch("/api/ab-compare", {
+      // 🧠 Send both to /api/ab-compare
+      const compareRes = await fetch("/api/ab-compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userEmail: user?.primaryEmailAddress?.emailAddress,
           personality: selectedPersonality,
-          originalTranscript,
-          originalGif,
-          originalDuration,
-          originalFileType,
-          revisedTranscript,
-          revisedGif,
-          revisedDuration,
-          revisedFileType,
+          original: {
+            transcript: originalData.transcript,
+            duration: originalData.duration,
+            fileType: originalData.fileType,
+          },
+          revised: {
+            transcript: revisedData.transcript,
+            duration: revisedData.duration,
+            fileType: revisedData.fileType,
+          },
         }),
       });
 
-      if (!critiqueRes.ok) throw new Error("Critique failed");
-      const { result } = await critiqueRes.json();
-
-      const aiMessage = { role: "ai" as const, content: result };
-      setChat([aiMessage]);
-      setABResponse(result);
-
-      // ✅ Save to Supabase
-      await supabase.from("chat_history").insert({
-        user_email: user.primaryEmailAddress?.emailAddress,
-        title: `${file.name} vs ${revisedFile.name}`,
-        personality: selectedPersonality,
-        messages: [aiMessage],
-        created_at: new Date().toISOString(),
-      });
-
-      toast.success("✅ A/B critique complete!");
+      const { result } = await compareRes.json();
+      setChat([{ role: "ai", content: result }]);
+      toast.success("✅ A/B test complete!");
     } catch (err) {
-      console.error("❌ A/B Test error:", err);
-      toast("A/B comparison failed.");
+      console.error("A/B Test Error:", err);
+      toast.error("A/B comparison failed.");
     } finally {
       setIsLoading(false);
     }
@@ -654,7 +625,70 @@ export default function UploadPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Revised and A/B Uploads */}
+            {/* 🔁 Upload Revised Ad and ⚖️ A/B Test Uploads */}
+            <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
+              {/* 🔁 Revised Ad */}
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
+                🔁 Upload Revised Ad
+                <input
+                  type="file"
+                  accept="video/mp4,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setRevisedFile(file);
+                      setRevisedPreviewUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
+
+              {/* 📤 Ad A (Original for A/B) */}
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
+                📤 Upload Ad A (Original)
+                <input
+                  type="file"
+                  accept="video/mp4,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setABOriginal(file);
+                  }}
+                />
+              </label>
+
+              {/* 📥 Ad B (Revised for A/B) */}
+              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
+                📥 Upload Ad B (Revised)
+                <input
+                  type="file"
+                  accept="video/mp4,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setABRevised(file);
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* ⚖️ Run A/B Comparison */}
+            <Button
+              onClick={() => {
+                if (abOriginal && abRevised) {
+                  handleABTest(abOriginal, abRevised);
+                } else {
+                  toast("Please upload both Ad A and Ad B.");
+                }
+              }}
+              className="mt-3 w-full sm:w-auto"
+              disabled={!abOriginal || !abRevised || isLoading}
+            >
+              {isLoading ? "Comparing..." : "⚖️ Run A/B Test"}
+            </Button>
+
+            {/* Revised and A/B Uploads [delete]*/}
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 🔁 Upload Revised Ad
@@ -679,8 +713,7 @@ export default function UploadPage() {
                   hidden
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setRevisedFile(file); // 👈 Save the revised file
-                    handleABTest(); // 👈 Call without arguments now
+                    if (file) setABRevised(file);
                   }}
                 />
               </label>

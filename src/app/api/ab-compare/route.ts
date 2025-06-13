@@ -1,79 +1,56 @@
-// 📁 File: /api/ab-compare/route.ts
+// /api/ab-compare/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const {
-      userEmail,
-      personality = "Nova",
-      originalTranscript,
-      revisedTranscript,
-      originalGif,
-      revisedGif,
-      originalDuration,
-      revisedDuration,
-      originalFileType,
-      revisedFileType,
-    } = body;
+    const { userEmail, personality, original, revised } = await req.json();
 
-    if (!userEmail || !originalTranscript || !revisedTranscript) {
-      console.error("❌ Missing required fields:", body);
-      return NextResponse.json(
-        { error: "Missing input data" },
-        { status: 400 }
-      );
+    if (!userEmail || !personality || !original || !revised) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     const prompt = `
-You are ${personality}, a master of ad critique and optimization.
+You are ${personality}, an expert ad strategist.
 
-Two video ads have been submitted for A/B testing.
+Compare two video ads for clarity, engagement, and effectiveness.
 
-🅰️ Original Ad:
-- File type: ${originalFileType || "unknown"}
-- Duration: ${originalDuration || "unknown"} seconds
-- Transcript: ${originalTranscript}
+📽️ Ad A (Original)
+- File Type: ${original.fileType}
+- Duration: ${original.duration} seconds
+- Transcript: "${original.transcript}"
 
-🅱️ Revised Ad:
-- File type: ${revisedFileType || "unknown"}
-- Duration: ${revisedDuration || "unknown"} seconds
-- Transcript: ${revisedTranscript}
+📽️ Ad B (Revised)
+- File Type: ${revised.fileType}
+- Duration: ${revised.duration} seconds
+- Transcript: "${revised.transcript}"
 
-🔍 TASK:
-Compare these two ads on:
-- Engagement
-- Clarity
-- Emotional or persuasive impact
+🎯 Task:
+- Compare strengths and weaknesses
+- Which one is more effective and why?
+- Give a recommendation on which ad performs better
 
-Clearly state:
-- Strengths of each
-- Weaknesses of each
-- Which one performs better and why
-- 2 suggestions for improving the weaker version
-
-${originalGif ? `Optional GIF preview of original: ${originalGif}` : ""}
-${revisedGif ? `Optional GIF preview of revised: ${revisedGif}` : ""}
+Keep it sharp, insightful, and based only on the transcript content.
     `.trim();
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: "You are a sharp, honest AI ad tester." },
+        { role: "system", content: "You are an expert ad critique assistant." },
         { role: "user", content: prompt },
       ],
     });
 
-    return NextResponse.json({ result: response.choices[0].message.content });
+    const result = response.choices[0]?.message.content;
+    return NextResponse.json({ result });
   } catch (err) {
     console.error("❌ A/B Compare API error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to process A/B comparison." },
       { status: 500 }
     );
   }
