@@ -152,7 +152,7 @@ export default function UploadPage() {
       setIsLoading(true);
 
       try {
-        const convertRes = await fetch("https://your-backend-url/api/convert", {
+        const convertRes = await fetch("/api/convert", {
           method: "POST",
           body: (() => {
             const formData = new FormData();
