@@ -147,6 +147,8 @@ export default function UploadPage() {
     const analyzeRevisedAd = async () => {
       if (!revisedFile || !user) return;
 
+      console.log("✅ revisedResponse state:", revisedResponse);
+
       setIsLoading(true);
 
       try {
@@ -169,7 +171,7 @@ export default function UploadPage() {
             personality: selectedPersonality,
             transcript: revisedData.transcript,
             duration: revisedData.duration || 0,
-            fileType: revisedFile.type === "video/mp4" ? "video" : "gif",
+            fileType: revisedFile.type,
           }),
         });
 
@@ -179,7 +181,6 @@ export default function UploadPage() {
 
         console.log("✅ Revised file:", revisedFile);
         console.log("✅ Revised critique result from API:", data?.result);
-        console.log("✅ revisedResponse state:", revisedResponse);
       } catch (err) {
         console.error("🛑 Revised critique error:", err);
         toast("Revised critique failed.");
