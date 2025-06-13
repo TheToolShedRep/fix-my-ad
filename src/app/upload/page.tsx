@@ -174,7 +174,12 @@ export default function UploadPage() {
         });
 
         const data = await res.json();
+
         setRevisedResponse(data?.result || null);
+
+        console.log("✅ Revised file:", revisedFile);
+        console.log("✅ Revised critique result from API:", data?.result);
+        console.log("✅ revisedResponse state:", revisedResponse);
       } catch (err) {
         console.error("🛑 Revised critique error:", err);
         toast("Revised critique failed.");
