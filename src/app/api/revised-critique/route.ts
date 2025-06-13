@@ -1,12 +1,9 @@
-// 📁 File: app/api/revised-critique/route.ts
-
+// app/api/revised-critique/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createSupabaseClient } from "@/utils/supabase/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,22 +11,18 @@ export async function POST(req: NextRequest) {
     const {
       userEmail,
       personality = "Nova",
-      originalTranscript,
-      revisedTranscript,
-      gifUrl,
-      duration,
-      fileType = "video/mp4",
+      transcript = "",
+      fileType = "video",
+      duration = 0,
     } = body;
 
-    if (!userEmail || !originalTranscript || !revisedTranscript) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+    if (!userEmail || !transcript) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     const supabase = createSupabaseClient();
-    const { data: profile, error } = await supabase
+
+    const { data: profile } = await supabase
       .from("user_profiles")
       .select("platform, ad_type, tone")
       .eq("user_email", userEmail)
@@ -38,50 +31,40 @@ export async function POST(req: NextRequest) {
     const platform = profile?.platform || "social media";
     const adType = profile?.ad_type || "generic";
     const tone = profile?.tone || "neutral";
-    const readableFileType = fileType.replace("video/", "");
 
     const prompt = `
-You are ${personality}, an expert ad analyst comparing an original ad with a revised version.
+You are ${personality}, an expert AI assistant who critiques *revised* ads.
 
-🛠️ Context:
+🛠️ Ad context:
 - Platform: ${platform}
-- Ad type: ${adType}
-- Tone: ${tone}
-- Format: ${readableFileType}
-- Duration: ${duration ? `${duration} seconds` : "short-form"}
+- Brand type: ${adType}
+- Tone: "${tone}"
+- Format: ${fileType}
+- Duration: ${duration} seconds
 
-📽️ Original Ad Transcript:
-"${originalTranscript}"
-
-📽️ Revised Ad Transcript:
-"${revisedTranscript}"
+🎧 Transcript:
+"${transcript}"
 
 🎯 Task:
-Analyze how the revised ad improved (or failed to improve) upon the original. Provide:
-- 3 notable improvements
-- 3 things that still need work
-- A final summary judgment on whether the revised ad is better overall
+Evaluate the revised ad:
+- Did it improve over a generic version?
+- Strengths, flaws, clarity, emotional impact
+- Any areas still needing improvement?
 
-${gifUrl ? `Optional preview: ${gifUrl}` : ""}
+Be helpful, encouraging, and constructive.
     `.trim();
 
-    const res = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        {
-          role: "system",
-          content: "You are an expert ad critique assistant.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "system", content: "You are an expert ad critique assistant." },
+        { role: "user", content: prompt },
       ],
     });
 
-    return NextResponse.json({ result: res.choices[0].message.content });
-  } catch (err: any) {
-    console.error("❌ /api/revised-critique error:", err?.message || err);
+    return NextResponse.json({ result: response.choices[0].message.content });
+  } catch (err) {
+    console.error("❌ Revised critique error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
