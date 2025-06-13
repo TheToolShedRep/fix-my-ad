@@ -147,11 +147,10 @@ export default function UploadPage() {
     const analyzeRevisedAd = async () => {
       if (!revisedFile || !user) return;
 
-      console.log("✅ revisedResponse state:", revisedResponse);
-
       setIsLoading(true);
 
       try {
+
         const convertRes = await fetch("/api/convert", {
           method: "POST",
           body: (() => {
@@ -161,8 +160,18 @@ export default function UploadPage() {
           })(),
         });
 
+        // 🔍 Extra error logging
+        if (!convertRes.ok) {
+          console.error("❌ /convert failed with status:", convertRes.status);
+          const errorText = await convertRes.text();
+          console.error("🧾 Error body:", errorText);
+          toast("Video conversion failed.");
+          return;
+        }
+
         const revisedData = await convertRes.json();
 
+        // Step 2: Send converted data to critique API
         const res = await fetch("/api/revised-critique", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -171,16 +180,12 @@ export default function UploadPage() {
             personality: selectedPersonality,
             transcript: revisedData.transcript,
             duration: revisedData.duration || 0,
-            fileType: revisedFile.type,
+            fileType: revisedFile.type === "video/mp4" ? "video" : "gif",
           }),
         });
 
         const data = await res.json();
-
         setRevisedResponse(data?.result || null);
-
-        console.log("✅ Revised file:", revisedFile);
-        console.log("✅ Revised critique result from API:", data?.result);
       } catch (err) {
         console.error("🛑 Revised critique error:", err);
         toast("Revised critique failed.");
@@ -189,8 +194,8 @@ export default function UploadPage() {
       }
     };
 
-    analyzeRevisedAd(); // ✅ function call
-  }, [revisedFile, user]); // ✅ effect dependencies
+    analyzeRevisedAd();
+  }, [revisedFile, user]);
 
   const handleABTest = async (originalFile: File, revisedFile: File) => {
     if (!user || !originalFile || !revisedFile) return;
