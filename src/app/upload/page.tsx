@@ -18,6 +18,7 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { checkProAccess } from "@/lib/checkProAccess";
 import SurveyModal from "@/components/survey/SurveyModal";
 import Topbar from "@/components/home/Topbar";
+import { validateVideoDuration } from "@/utils/validateVideoDuration";
 
 // Personalities
 const personalities = {
@@ -145,27 +146,45 @@ export default function UploadPage() {
   useEffect(() => {
     const analyzeRevisedAd = async () => {
       if (!revisedFile || !user) return;
+
       setIsLoading(true);
+
       try {
+        const convertRes = await fetch("/api/convert", {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("video", revisedFile);
+            return formData;
+          })(),
+        });
+
+        const revisedData = await convertRes.json();
+
         const res = await fetch("/api/revised-critique", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userEmail: user?.primaryEmailAddress?.emailAddress,
             personality: selectedPersonality,
+            transcript: revisedData.transcript,
+            duration: revisedData.duration || 0,
             fileType: revisedFile.type === "video/mp4" ? "video" : "gif",
           }),
         });
+
         const data = await res.json();
         setRevisedResponse(data?.result || null);
       } catch (err) {
+        console.error("🛑 Revised critique error:", err);
         toast("Revised critique failed.");
       } finally {
         setIsLoading(false);
       }
     };
-    analyzeRevisedAd();
-  }, [revisedFile]);
+
+    analyzeRevisedAd(); // ✅ This is fine
+  }, [revisedFile, user]); // ✅ But this closing bracket is mismatched without closing analyzeRevisedAd above
 
   const handleABTest = async (originalFile: File, revisedFile: File) => {
     if (!user || !originalFile || !revisedFile) return;
@@ -188,6 +207,7 @@ export default function UploadPage() {
         method: "POST",
         body: revisedForm,
       });
+
       const revisedData = await revisedRes.json();
 
       // 🧠 Send both to /api/ab-compare
