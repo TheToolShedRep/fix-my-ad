@@ -183,8 +183,8 @@ export default function UploadPage() {
       }
     };
 
-    analyzeRevisedAd(); // ✅ This is fine
-  }, [revisedFile, user]); // ✅ But this closing bracket is mismatched without closing analyzeRevisedAd above
+    analyzeRevisedAd(); // ✅ function call
+  }, [revisedFile, user]); // ✅ effect dependencies
 
   const handleABTest = async (originalFile: File, revisedFile: File) => {
     if (!user || !originalFile || !revisedFile) return;
