@@ -58,6 +58,13 @@ export default function UploadPage() {
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // performance metrics
+  const [transcript, setTranscript] = useState("");
+  const [duration, setDuration] = useState(0);
+  const [platform, setPlatform] = useState("");
+  const [adType, setAdType] = useState("");
+  const [tone, setTone] = useState("");
+
   // Revised critique
   const [revisedFile, setRevisedFile] = useState<File | null>(null);
   const [revisedPreviewUrl, setRevisedPreviewUrl] = useState<string | null>(
@@ -116,6 +123,7 @@ export default function UploadPage() {
         .eq("id", selectedId)
         .eq("user_email", email)
         .single();
+
       if (data?.messages) setChat(data.messages);
     };
     restoreChat();
@@ -127,6 +135,25 @@ export default function UploadPage() {
       if (email) setIsProUser(await checkProAccess(email));
     };
     check();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("platform, ad_type, tone")
+        .eq("user_email", email)
+        .single();
+
+      setPlatform(profile?.platform || "");
+      setAdType(profile?.ad_type || "");
+      setTone(profile?.tone || "");
+    };
+
+    if (user) fetchProfileData();
   }, [user]);
 
   useEffect(() => {
@@ -265,6 +292,8 @@ export default function UploadPage() {
     setChat([]);
     setFollowup("");
     setFollowupCount(0);
+    setTranscript(transcript);
+    setDuration(duration);
 
     try {
       const formData = new FormData();
@@ -463,6 +492,31 @@ export default function UploadPage() {
     }
   };
 
+  const handlePerformancePredict = async () => {
+    const res = await fetch("/api/performance-predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userEmail: user?.primaryEmailAddress?.emailAddress,
+        transcript,
+        duration,
+        platform,
+        adType,
+        tone,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.result) {
+      setChat((prev) => [
+        ...prev,
+        { role: "ai", content: `📈 Performance Prediction:\n${data.result}` },
+      ]);
+    } else {
+      toast.error("Failed to generate prediction.");
+    }
+  };
+
   return (
     <DashboardLayout
       onSelectEntry={(messages) => {
@@ -482,7 +536,6 @@ export default function UploadPage() {
     >
       <div className="min-h-screen flex flex-col items-center px-4 bg-gray-950 text-white">
         {!user && <Topbar />}
-
         {/* Survey Prompt */}
         <div className="w-full max-w-md bg-purple-900/40 border border-purple-600 text-purple-200 p-4 rounded mb-6">
           <p className="mb-2 text-sm">
@@ -497,9 +550,7 @@ export default function UploadPage() {
           </Button>
           <SurveyModal open={showSurvey} setOpen={setShowSurvey} />
         </div>
-
         <h1 className="text-3xl font-bold mt-6 mb-4">Upload an Ad</h1>
-
         {/* Upload Box */}
         <div
           {...getRootProps()}
@@ -512,7 +563,6 @@ export default function UploadPage() {
               : "Drag & drop or click to upload a GIF or MP4"}
           </p>
         </div>
-
         {/* Personality Selector */}
         <div className="mt-6 w-full max-w-md space-y-2">
           <label className="block text-sm text-gray-300 font-medium">
@@ -548,7 +598,6 @@ export default function UploadPage() {
             })}
           </div>
         </div>
-
         {/* Preview */}
         {previewUrl && (
           <div className="mt-4">
@@ -567,7 +616,6 @@ export default function UploadPage() {
             )}
           </div>
         )}
-
         {/* Analyze Button */}
         {file && chat.length === 0 && !revisedResponse && (
           <Button
@@ -578,7 +626,6 @@ export default function UploadPage() {
             {isLoading ? "Analyzing..." : "Continue to Analyze"}
           </Button>
         )}
-
         {/* Chat */}
         {chat.length > 0 && (
           <>
@@ -663,7 +710,7 @@ export default function UploadPage() {
 
             {/* 🔁 Upload Revised Ad and ⚖️ A/B Test Uploads */}
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
-              {/* 🔁 Revised Ad */}
+              🔁 Revised Ad
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 🔁 Upload Revised Ad
                 <input
@@ -679,7 +726,13 @@ export default function UploadPage() {
                   }}
                 />
               </label>
-
+              {/* Prodiction performance */}
+              <Button onClick={handlePerformancePredict}>
+                📈 Predict Performance
+              </Button>
+              <h3 className="text-lg font-semibold mt-4 mb-2">
+                📈 Performance Prediction
+              </h3>
               {/* 📤 Ad A (Original for A/B) */}
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 📤 Upload Ad A (Original)
@@ -693,7 +746,6 @@ export default function UploadPage() {
                   }}
                 />
               </label>
-
               {/* 📥 Ad B (Revised for A/B) */}
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 📥 Upload Ad B (Revised)
@@ -745,8 +797,7 @@ export default function UploadPage() {
             </form>
           </>
         )}
-
-        {/* Revised Critique Result */}
+        Revised Critique Result
         {revisedResponse && (
           <div className="mt-6 max-w-xl bg-gray-800 p-4 rounded-lg">
             <h2 className="text-lg font-bold mb-2 text-purple-300">
@@ -755,7 +806,6 @@ export default function UploadPage() {
             <p className="text-sm whitespace-pre-wrap">{revisedResponse}</p>
           </div>
         )}
-
         {/* A/B Comparison Result */}
         {abResponse && (
           <div className="mt-6 max-w-xl bg-gray-800 p-4 rounded-lg">
