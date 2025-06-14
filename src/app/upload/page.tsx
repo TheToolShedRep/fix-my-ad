@@ -115,10 +115,13 @@ export default function UploadPage() {
 
   useEffect(() => {
     const restoreChat = async () => {
+      if (!user || !isLoaded) return;
+
       const selectedId = localStorage.getItem("selectedChatId");
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!selectedId || !email) return;
-      const { data } = await supabase
+
+      const { data, error } = await supabase
         .from("chat_history")
         .select("messages")
         .eq("id", selectedId)
@@ -127,8 +130,9 @@ export default function UploadPage() {
 
       if (data?.messages) setChat(data.messages);
     };
+
     restoreChat();
-  }, [user]);
+  }, [user, isLoaded]);
 
   useEffect(() => {
     const check = async () => {
