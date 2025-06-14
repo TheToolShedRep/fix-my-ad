@@ -19,6 +19,7 @@ import { checkProAccess } from "@/lib/checkProAccess";
 import SurveyModal from "@/components/survey/SurveyModal";
 import Topbar from "@/components/home/Topbar";
 import { validateVideoDuration } from "@/utils/validateVideoDuration";
+import ReactMarkdown from "react-markdown";
 
 // Personalities
 const personalities = {
@@ -691,7 +692,9 @@ export default function UploadPage() {
                         isUser ? "bg-blue-600" : "bg-gray-800"
                       }`}
                     >
-                      {msg.content}
+                      <div className="prose prose-sm prose-invert max-w-none">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
                       {!isUser && (
                         <div className="flex gap-2 mt-1 items-center">
                           <button
