@@ -102,7 +102,8 @@ export default function UploadPage() {
       }
 
       setFile(uploadedFile);
-      setPreviewUrl(URL.createObjectURL(uploadedFile));
+      // setPreviewUrl(URL.createObjectURL(uploadedFile));
+      // setPreviewUrl(gifUrl);
     },
     accept: { "video/mp4": [".mp4"], "image/gif": [".gif"] },
     multiple: false,
@@ -305,14 +306,18 @@ export default function UploadPage() {
       formData.append("video", file);
 
       // 1️⃣ Send to backend /convert to get transcript, gif, metadata
-      const convertRes = await fetch("http://localhost:3000/convert", {
+      const convertRes = await fetch("/api/convert", {
         method: "POST",
         body: formData,
       });
 
       if (!convertRes.ok) throw new Error("Conversion failed");
+
       const { transcript, gifUrl, duration, fileType } =
         await convertRes.json();
+
+      // ✅ Show the Supabase-hosted GIF in the preview
+      setPreviewUrl(gifUrl);
 
       // 2️⃣ Send to backend /critique with prompt parts
       const critiqueRes = await fetch("/api/critique", {
@@ -335,25 +340,19 @@ export default function UploadPage() {
       const initialMessage = { role: "ai" as "ai", content: result };
       setChat([initialMessage]);
 
-      // 🧠 Generate a readable title from the AI's first line or fallback to filename
-      // const titleFromAI =
-      //   result
-      //     ?.split("\n")
-      //     .find((line: string) => line.trim())
-      //     ?.slice(10, 100) || file.name;
-
+      // 🧠 Generate a readable title from the AI's 2nd or 3rd line
       const titleFromAI = (() => {
         const lines = result
           ?.split("\n")
           .map((line: string) => line.trim())
           .filter(Boolean);
-        const candidates = [lines[1], lines[2]].filter(Boolean); // 2nd and 3rd lines if they exist
+        const candidates = [lines[1], lines[2]].filter(Boolean);
         const randomLine =
           candidates[Math.floor(Math.random() * candidates.length)];
         return randomLine?.slice(0, 100) || file.name;
       })();
 
-      // 4️⃣ Save to Supabase (optional)
+      // 4️⃣ Save to Supabase
       await supabase.from("chat_history").insert({
         user_email: user?.primaryEmailAddress?.emailAddress,
         title: titleFromAI,
@@ -370,6 +369,7 @@ export default function UploadPage() {
       setIsLoading(false);
     }
   };
+
   // 🧠 END: handleInitialAnalyze
 
   const validateVideoDuration = async (
