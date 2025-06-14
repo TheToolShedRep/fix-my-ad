@@ -330,6 +330,13 @@ export default function UploadPage() {
       const initialMessage = { role: "ai" as "ai", content: result };
       setChat([initialMessage]);
 
+      // 🧠 Generate a readable title from the AI's first line or fallback to filename
+      const titleFromAI =
+        result
+          ?.split("\n")
+          .find((line) => line.trim())
+          ?.slice(0, 100) || file.name;
+
       // 4️⃣ Save to Supabase (optional)
       await supabase.from("chat_history").insert({
         user_email: user?.primaryEmailAddress?.emailAddress,
