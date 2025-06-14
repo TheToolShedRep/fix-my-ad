@@ -335,7 +335,7 @@ export default function UploadPage() {
         result
           ?.split("\n")
           .find((line: string) => line.trim())
-          ?.slice(0, 100) || file.name;
+          ?.slice(10, 100) || file.name;
 
       // 4️⃣ Save to Supabase (optional)
       await supabase.from("chat_history").insert({
