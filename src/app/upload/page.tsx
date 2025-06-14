@@ -492,28 +492,53 @@ export default function UploadPage() {
     }
   };
 
+  // This handles the prediction
   const handlePerformancePredict = async () => {
-    const res = await fetch("/api/performance-predict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userEmail: user?.primaryEmailAddress?.emailAddress,
-        transcript,
-        duration,
-        platform,
-        adType,
-        tone,
-      }),
-    });
+    if (!file || !user) return;
 
-    const data = await res.json();
-    if (data.result) {
+    setIsLoading(true);
+
+    try {
+      // 🔁 Step 1: Convert video to transcript + metadata
+      const formData = new FormData();
+      formData.append("video", file);
+
+      const convertRes = await fetch("http://localhost:3000/convert", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!convertRes.ok) throw new Error("Conversion failed");
+      const { transcript, duration } = await convertRes.json();
+
+      // 🔁 Step 2: Send to prediction route
+      const predictRes = await fetch("/api/performance-predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: user?.primaryEmailAddress?.emailAddress,
+          transcript,
+          platform: "TikTok", // ← use actual user-selected value
+          adType: "E-commerce", // ← user-selected
+          tone: "Upbeat", // ← user-selected
+          duration,
+        }),
+      });
+
+      if (!predictRes.ok) throw new Error("Prediction failed");
+      const { result } = await predictRes.json();
+
+      // Display it in chat or another UI element
       setChat((prev) => [
         ...prev,
-        { role: "ai", content: `📈 Performance Prediction:\n${data.result}` },
+        { role: "ai", content: "📊 Predicted Performance:\n\n" + result },
       ]);
-    } else {
-      toast.error("Failed to generate prediction.");
+      toast.success("Prediction ready!");
+    } catch (err) {
+      console.error("❌ Prediction error:", err);
+      toast.error("Performance prediction failed.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -710,29 +735,15 @@ export default function UploadPage() {
 
             {/* 🔁 Upload Revised Ad and ⚖️ A/B Test Uploads */}
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
-              {/* 🔁 Revised Ad
-              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
-                🔁 Upload Revised Ad
-                <input
-                  type="file"
-                  accept="video/mp4,image/gif"
-                  hidden
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setRevisedFile(file);
-                      setRevisedPreviewUrl(URL.createObjectURL(file));
-                    }
-                  }}
-                />
-              </label> */}
               {/* Prodiction performance */}
-              <Button onClick={handlePerformancePredict}>
-                📈 Predict Performance
+              <Button
+                className="mt-4"
+                disabled={isLoading || !file}
+                onClick={handlePerformancePredict}
+              >
+                {isLoading ? "Predicting..." : "📊 Predict Performance"}
               </Button>
-              {/* <h3 className="text-lg font-semibold mt-4 mb-2">
-                📈 Performance Prediction
-              </h3> */}
+
               {/* 📤 Ad A (Original for A/B) */}
               <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 📤 Upload Ad A (Original)
@@ -797,7 +808,6 @@ export default function UploadPage() {
             </form>
           </>
         )}
-        Revised Critique Result
         {revisedResponse && (
           <div className="mt-6 max-w-xl bg-gray-800 p-4 rounded-lg">
             <h2 className="text-lg font-bold mb-2 text-purple-300">
