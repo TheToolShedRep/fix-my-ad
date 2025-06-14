@@ -184,14 +184,17 @@ export default function UploadPage() {
 
       try {
         // Step 1: Convert the revised video
-        const convertRes = await fetch("/api/convert", {
-          method: "POST",
-          body: (() => {
-            const formData = new FormData();
-            formData.append("video", revisedFile);
-            return formData;
-          })(),
-        });
+        const convertRes = await fetch(
+          "https://stripe-webhook-rlg0.onrender.com/convert",
+          {
+            method: "POST",
+            body: (() => {
+              const formData = new FormData();
+              formData.append("video", revisedFile);
+              return formData;
+            })(),
+          }
+        );
 
         // 🔍 Extra error logging
         if (!convertRes.ok) {
@@ -306,10 +309,13 @@ export default function UploadPage() {
       formData.append("video", file);
 
       // 1️⃣ Send to backend /convert to get transcript, gif, metadata
-      const convertRes = await fetch("/api/convert", {
-        method: "POST",
-        body: formData,
-      });
+      const convertRes = await fetch(
+        "https://stripe-webhook-rlg0.onrender.com/convert",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (!convertRes.ok) throw new Error("Conversion failed");
 
