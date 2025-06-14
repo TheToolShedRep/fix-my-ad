@@ -57,8 +57,9 @@ export default function PricingTiers() {
               <li>✔ 60s ad uploads</li>
               <li>✔ Unlimited follow-ups</li>
               <li>✔ All AI personalities</li>
-              <li>✔ A/B testing & re-critiques</li>
+              <li>✔ A/B testing</li>
               <li>✔ Project folders</li>
+              <li>✔ Quantitative Prediction</li>
             </ul>
             <p className="text-white text-3xl font-bold mb-4">$10/mo</p>
           </div>
