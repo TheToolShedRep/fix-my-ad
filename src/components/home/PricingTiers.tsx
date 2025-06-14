@@ -50,7 +50,7 @@ export default function PricingTiers() {
         </div>
 
         {/* Pro Tier */}
-        <div className="border rounded-lg p-6 bg-gray-800 border-purple-500 flex flex-col justify-between">
+        <div className="border rounded-lg p-10 bg-gray-800 border-purple-500 flex flex-col justify-between">
           <div>
             <h2 className="text-2xl font-semibold mb-4">Pro</h2>
             <ul className="text-gray-300 text-base space-y-2 mb-6">
@@ -59,7 +59,7 @@ export default function PricingTiers() {
               <li>✔ All AI personalities</li>
               <li>✔ A/B testing</li>
               <li>✔ Project folders</li>
-              <li>✔ Quantitative Prediction</li>
+              <li>✔ Quantitative Predictions</li>
             </ul>
             <p className="text-white text-3xl font-bold mb-4">$10/mo</p>
           </div>
