@@ -737,7 +737,7 @@ export default function UploadPage() {
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">
               {/* Prodiction performance */}
               <Button
-                className="mt-4 cursor-pointer px-4 py-2 rounded text-center w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+                className=" cursor-pointer px-4 py-2 rounded text-center w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading || !file}
                 onClick={handlePerformancePredict}
               >
@@ -745,7 +745,7 @@ export default function UploadPage() {
               </Button>
 
               {/* 📤 Ad A (Original for A/B) */}
-              <label className="cursor-pointer px-4 py-2 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
+              <label className="cursor-pointer px-4 py-4 bg-gray-800 rounded hover:bg-gray-700 text-center w-full sm:w-auto">
                 📤 Upload Ad A (Original)
                 <input
                   type="file"
