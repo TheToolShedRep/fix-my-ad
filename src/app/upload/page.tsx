@@ -331,11 +331,22 @@ export default function UploadPage() {
       setChat([initialMessage]);
 
       // 🧠 Generate a readable title from the AI's first line or fallback to filename
-      const titleFromAI =
-        result
+      // const titleFromAI =
+      //   result
+      //     ?.split("\n")
+      //     .find((line: string) => line.trim())
+      //     ?.slice(10, 100) || file.name;
+
+      const titleFromAI = (() => {
+        const lines = result
           ?.split("\n")
-          .find((line: string) => line.trim())
-          ?.slice(10, 100) || file.name;
+          .map((line: string) => line.trim())
+          .filter(Boolean);
+        const candidates = [lines[1], lines[2]].filter(Boolean); // 2nd and 3rd lines if they exist
+        const randomLine =
+          candidates[Math.floor(Math.random() * candidates.length)];
+        return randomLine?.slice(0, 100) || file.name;
+      })();
 
       // 4️⃣ Save to Supabase (optional)
       await supabase.from("chat_history").insert({
