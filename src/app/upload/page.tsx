@@ -334,13 +334,13 @@ export default function UploadPage() {
       const titleFromAI =
         result
           ?.split("\n")
-          .find((line) => line.trim())
+          .find((line: string) => line.trim())
           ?.slice(0, 100) || file.name;
 
       // 4️⃣ Save to Supabase (optional)
       await supabase.from("chat_history").insert({
         user_email: user?.primaryEmailAddress?.emailAddress,
-        title: file.name,
+        title: titleFromAI,
         personality: selectedPersonality,
         messages: [initialMessage],
         created_at: new Date().toISOString(),
