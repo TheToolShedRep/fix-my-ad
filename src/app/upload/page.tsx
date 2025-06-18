@@ -136,6 +136,16 @@ export default function UploadPage() {
   }, [user, isLoaded]);
 
   useEffect(() => {
+    const savedPreviewUrl = localStorage.getItem("previewUrl");
+    const savedPreviewType = localStorage.getItem("previewType");
+
+    if (savedPreviewUrl) setPreviewUrl(savedPreviewUrl);
+    if (savedPreviewType) {
+      setFile({ name: "Restored", type: savedPreviewType } as File);
+    }
+  }, []);
+
+  useEffect(() => {
     const check = async () => {
       const email = user?.primaryEmailAddress?.emailAddress;
       if (email) setIsProUser(await checkProAccess(email));
@@ -324,6 +334,9 @@ export default function UploadPage() {
 
       // ✅ Show the Supabase-hosted GIF in the preview
       setPreviewUrl(gifUrl);
+
+      localStorage.setItem("previewUrl", gifUrl);
+      localStorage.setItem("previewType", file.type);
 
       // 2️⃣ Send to backend /critique with prompt parts
       const critiqueRes = await fetch("/api/critique", {
@@ -586,6 +599,8 @@ export default function UploadPage() {
         setFollowup("");
         setFollowupCount(0);
         localStorage.removeItem("selectedChatId");
+        localStorage.removeItem("previewUrl");
+        localStorage.removeItem("previewType");
       }}
     >
       <div className="min-h-screen flex flex-col items-center px-4 bg-gray-950 text-white">
