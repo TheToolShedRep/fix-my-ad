@@ -59,6 +59,9 @@ export default function UploadPage() {
   );
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Set red flag language
+  const [extractedRedFlags, setExtractedRedFlags] = useState<string[]>([]);
+
   // performance metrics
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);
@@ -331,8 +334,13 @@ export default function UploadPage() {
 
       if (!convertRes.ok) throw new Error("Conversion failed");
 
-      const { transcript, gifUrl, duration, fileType } =
-        await convertRes.json();
+      const {
+        transcript,
+        gifUrl,
+        duration,
+        fileType,
+        redFlags = [],
+      } = await convertRes.json();
 
       // ✅ Show the Supabase-hosted GIF in the preview
       setPreviewUrl(gifUrl);
@@ -356,6 +364,20 @@ export default function UploadPage() {
 
       if (!critiqueRes.ok) throw new Error("Critique failed");
       const { result } = await critiqueRes.json();
+
+      // 🔍 Try to extract RedFlags array from result (if present)
+      let redFlagsParsed: string[] = [];
+
+      setExtractedRedFlags(redFlagsParsed);
+
+      const redFlagMatch = result.match(/RedFlags:\s*\[([\s\S]*?)\]/);
+      if (redFlagMatch) {
+        try {
+          redFlagsParsed = JSON.parse(`[${redFlagMatch[1]}]`);
+        } catch (err) {
+          console.warn("⚠️ Couldn't parse RedFlags array:", err);
+        }
+      }
 
       // 3️⃣ Set chat response in frontend
       const initialMessage = { role: "ai" as "ai", content: result };
@@ -586,6 +608,33 @@ export default function UploadPage() {
     }
   };
 
+  // Red flag language tooltip
+  const getTooltip = (flag: string) => {
+    if (flag.toLowerCase().includes("no cta"))
+      return "This ad may be missing a call-to-action.";
+    if (flag.toLowerCase().includes("clarity"))
+      return "The message might not be clear to the audience.";
+    if (flag.toLowerCase().includes("length"))
+      return "Ad may be too long for the platform.";
+    if (flag.toLowerCase().includes("emotion"))
+      return "Lack of emotional appeal could reduce engagement.";
+    return "Potential issue detected in the ad's messaging or structure.";
+  };
+
+  // Highlight red flag inline in AI response
+  function highlightRedFlags(text: string, flags: string[]) {
+    let highlighted = text;
+    flags.forEach((flag) => {
+      const escaped = flag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // escape regex
+      const regex = new RegExp(`(${escaped})`, "gi");
+      highlighted = highlighted.replace(
+        regex,
+        "<mark class='bg-red-600/40 px-1 rounded'>$1</mark>"
+      );
+    });
+    return highlighted;
+  }
+
   return (
     <DashboardLayout
       onSelectEntry={(messages) => {
@@ -721,7 +770,27 @@ export default function UploadPage() {
                       }`}
                     >
                       <div className="prose prose-sm prose-invert max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown
+                          components={{
+                            p({ children }) {
+                              const content = String(children);
+                              const withHighlights = highlightRedFlags(
+                                content,
+                                extractedRedFlags
+                              );
+                              return (
+                                <p
+                                  className="inline"
+                                  dangerouslySetInnerHTML={{
+                                    __html: withHighlights,
+                                  }}
+                                />
+                              );
+                            },
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
                       </div>
                       {!isUser && (
                         <div className="flex gap-2 mt-1 items-center">
@@ -781,6 +850,28 @@ export default function UploadPage() {
               })}
               <div ref={chatEndRef} />
             </div>
+
+            {/* Red flag implimentation */}
+            {extractedRedFlags.length > 0 && (
+              <div className="mt-6 max-w-xl bg-red-900/20 border border-red-700 p-4 rounded-lg">
+                <h2 className="text-lg font-bold text-red-300 mb-2">
+                  🚩 Red Flags Detected
+                </h2>
+                <ul className="list-none space-y-2 text-sm text-red-100">
+                  {extractedRedFlags.map((flag, idx) => (
+                    <li
+                      key={idx}
+                      className="relative group pl-6 before:absolute before:left-0 before:top-0 before:text-red-400 before:content-['⚠️']"
+                    >
+                      {flag}
+                      <div className="absolute left-6 top-full mt-1 hidden group-hover:block bg-red-800 text-xs text-white p-2 rounded shadow-lg z-10 w-max max-w-xs">
+                        {getTooltip(flag)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* 🔁 Upload Revised Ad and ⚖️ A/B Test Uploads */}
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-xl">

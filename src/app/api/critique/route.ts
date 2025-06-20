@@ -67,18 +67,23 @@ You are ${personality}, an expert AI assistant who critiques video ads with clar
 - Duration: ${duration ? `${duration} seconds` : "short-form"}
 
 🎧 Transcript:
-"${transcript}"
+"""${transcript}"""
 
 🎯 Task:
-Provide:
-- 3 clear strengths
-- 3 weaknesses or potential issues
-- 3 specific improvement tips
+1. Identify 3 clear **strengths** of this ad.
+2. Point out 3 potential **weaknesses** or **red flags**. Watch for:
+   - Manipulative or guilt-tripping language
+   - False urgency ("Only today!", "Hurry now!")
+   - Exaggerated promises
+   - Inappropriate humor or cultural insensitivity
+   - Missing clarity or call-to-action (CTA)
+3. Give 3 **actionable suggestions** to improve performance or clarity.
+4. Return a labeled array of any risky phrases as:
+RedFlags: ["Example 1", "Example 2"]
 
-Be honest and helpful. Mention if the ad is missing a CTA, clarity, or emotional impact.
-
+Use direct, helpful, and concise language.
 ${gifUrl ? `Optional preview: ${gifUrl}` : ""}
-      `.trim();
+`.trim();
     }
 
     console.log("🧠 Final prompt:", finalPrompt);
@@ -98,8 +103,35 @@ ${gifUrl ? `Optional preview: ${gifUrl}` : ""}
       ],
     });
 
+    // 🧠 Step 2: Ask GPT to extract risky/red flag phrases
+    const redFlagRes = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You're a legal and compliance assistant. Your job is to find potentially misleading, risky, or non-compliant phrases in ad copy. Return only a JSON array of the exact risky phrases. Do NOT explain. Only output the array.`,
+        },
+        {
+          role: "user",
+          content: transcript || finalPrompt, // Fallback if transcript missing
+        },
+      ],
+    });
+
+    let redFlags: string[] = [];
+    try {
+      const jsonMatch =
+        redFlagRes.choices[0].message.content?.match(/\[([\s\S]*?)\]/);
+      if (jsonMatch) redFlags = JSON.parse(jsonMatch[0]);
+    } catch (err) {
+      console.warn("⚠️ Failed to parse redFlags from GPT:", err);
+    }
+
     // 📤 Return result back to frontend
-    return NextResponse.json({ result: res.choices[0].message.content });
+    return NextResponse.json({
+      result: res.choices[0].message.content,
+      redFlags,
+    });
   } catch (error: any) {
     // 🚨 Handle unexpected errors
     console.error("❌ /api/critique error:", error?.message || error);
