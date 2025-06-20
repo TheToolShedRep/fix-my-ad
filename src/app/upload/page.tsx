@@ -772,17 +772,28 @@ export default function UploadPage() {
                       <div className="prose prose-sm prose-invert max-w-none">
                         <ReactMarkdown
                           components={{
-                            p({ children }) {
-                              const content = String(children);
-                              const withHighlights = highlightRedFlags(
-                                content,
-                                extractedRedFlags
+                            p: ({ children }) => {
+                              // Inline red flag highlighting
+                              const text = String(children);
+                              const highlighted = extractedRedFlags.reduce(
+                                (acc, phrase) => {
+                                  const escaped = phrase.replace(
+                                    /[.*+?^${}()|[\]\\]/g,
+                                    "\\$&"
+                                  ); // escape regex
+                                  const regex = new RegExp(escaped, "gi");
+                                  return acc.replace(
+                                    regex,
+                                    (match) => `<mark>${match}</mark>`
+                                  );
+                                },
+                                text
                               );
+
                               return (
                                 <p
-                                  className="inline"
                                   dangerouslySetInnerHTML={{
-                                    __html: withHighlights,
+                                    __html: highlighted,
                                   }}
                                 />
                               );
@@ -792,6 +803,7 @@ export default function UploadPage() {
                           {msg.content}
                         </ReactMarkdown>
                       </div>
+
                       {!isUser && (
                         <div className="flex gap-2 mt-1 items-center">
                           <button
@@ -852,22 +864,15 @@ export default function UploadPage() {
             </div>
 
             {/* Red flag implimentation */}
+            {/* 🚩 Red Flags Box */}
             {extractedRedFlags.length > 0 && (
-              <div className="mt-6 max-w-xl bg-red-900/20 border border-red-700 p-4 rounded-lg">
-                <h2 className="text-lg font-bold text-red-300 mb-2">
-                  🚩 Red Flags Detected
-                </h2>
-                <ul className="list-none space-y-2 text-sm text-red-100">
+              <div className="bg-red-900/40 border border-red-600 p-4 rounded text-red-200 text-sm mb-4">
+                <div className="font-semibold mb-1">
+                  🚩 Risky Phrases Detected:
+                </div>
+                <ul className="list-disc list-inside space-y-1">
                   {extractedRedFlags.map((flag, idx) => (
-                    <li
-                      key={idx}
-                      className="relative group pl-6 before:absolute before:left-0 before:top-0 before:text-red-400 before:content-['⚠️']"
-                    >
-                      {flag}
-                      <div className="absolute left-6 top-full mt-1 hidden group-hover:block bg-red-800 text-xs text-white p-2 rounded shadow-lg z-10 w-max max-w-xs">
-                        {getTooltip(flag)}
-                      </div>
-                    </li>
+                    <li key={idx}>{flag}</li>
                   ))}
                 </ul>
               </div>

@@ -66,9 +66,9 @@
 }
 
 mark {
-  background-color: rgba(255, 0, 0, 0.3);
+ background-color: rgba(239, 68, 68, 0.3); /* light red */
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 
