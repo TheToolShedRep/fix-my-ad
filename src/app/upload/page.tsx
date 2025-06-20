@@ -117,6 +117,16 @@ export default function UploadPage() {
   }, [chat]);
 
   useEffect(() => {
+    const savedPreviewUrl = localStorage.getItem("previewUrl");
+    const savedPreviewType = localStorage.getItem("previewType");
+
+    if (savedPreviewUrl) setPreviewUrl(savedPreviewUrl);
+    if (savedPreviewType) {
+      setFile({ name: "Restored", type: savedPreviewType } as File);
+    }
+  }, []);
+
+  useEffect(() => {
     const restoreChat = async () => {
       if (!user || !isLoaded) return;
 
@@ -136,16 +146,6 @@ export default function UploadPage() {
 
     restoreChat();
   }, [user, isLoaded]);
-
-  useEffect(() => {
-    const savedPreviewUrl = localStorage.getItem("previewUrl");
-    const savedPreviewType = localStorage.getItem("previewType");
-
-    if (savedPreviewUrl) setPreviewUrl(savedPreviewUrl);
-    if (savedPreviewType) {
-      setFile({ name: "Restored", type: savedPreviewType } as File);
-    }
-  }, []);
 
   useEffect(() => {
     const check = async () => {
