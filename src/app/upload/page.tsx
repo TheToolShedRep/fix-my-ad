@@ -601,7 +601,7 @@ export default function UploadPage() {
         setFollowup("");
         setFollowupCount(0);
         localStorage.removeItem("selectedChatId");
-        localStorage.removeItem("previewUrl");
+        // localStorage.removeItem("previewUrl");
         localStorage.removeItem("previewType");
       }}
     >
@@ -670,23 +670,24 @@ export default function UploadPage() {
           </div>
         </div>
         {/* Preview */}
-        {previewUrl && (
+        {(previewUrl || isLoading) && (
           <div className="mt-4">
             {file?.type === "video/mp4" ? (
               <video
-                src={previewUrl}
+                src={previewUrl || ""}
                 controls
                 className="max-w-md rounded-lg"
               />
             ) : (
               <img
-                src={previewUrl}
+                src={previewUrl || ""}
                 alt="Preview"
                 className="max-w-md rounded-lg"
               />
             )}
           </div>
         )}
+
         {/* Analyze Button */}
         {file && chat.length === 0 && !revisedResponse && (
           <Button
