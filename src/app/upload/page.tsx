@@ -102,7 +102,9 @@ export default function UploadPage() {
       }
 
       setFile(uploadedFile);
-      // setPreviewUrl(URL.createObjectURL(uploadedFile));
+      setPreviewUrl(URL.createObjectURL(uploadedFile));
+      localStorage.setItem("previewUrl", URL.createObjectURL(uploadedFile));
+      localStorage.setItem("previewType", uploadedFile.type);
       // setPreviewUrl(gifUrl);
     },
     accept: { "video/mp4": [".mp4"], "image/gif": [".gif"] },
