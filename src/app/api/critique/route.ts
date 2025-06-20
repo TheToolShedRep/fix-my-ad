@@ -128,8 +128,11 @@ ${gifUrl ? `Optional preview: ${gifUrl}` : ""}
     }
 
     // 📤 Return result back to frontend
+    const result = res.choices[0].message.content;
+    console.log("🧠 GPT result:", result);
+
     return NextResponse.json({
-      result: res.choices[0].message.content,
+      result,
       redFlags,
     });
   } catch (error: any) {
