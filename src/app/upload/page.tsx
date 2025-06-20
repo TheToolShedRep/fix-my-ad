@@ -298,7 +298,16 @@ export default function UploadPage() {
       console.log("🐛 A/B API result:", result);
       setABResponse(result || null);
 
-      setChat([{ role: "ai", content: result }]);
+      setChat([
+        {
+          role: "ai",
+          content:
+            typeof result === "string"
+              ? result
+              : JSON.stringify(result, null, 2),
+        },
+      ]);
+
       toast.success("✅ A/B test complete!");
     } catch (err) {
       console.error("A/B Test Error:", err);
