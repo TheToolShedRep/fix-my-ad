@@ -360,7 +360,10 @@ export default function UploadPage() {
       // 2️⃣ Send to backend /critique with prompt parts
       const critiqueRes = await fetch("/api/critique", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
           userEmail: user?.primaryEmailAddress?.emailAddress,
           personality: selectedPersonality,
